@@ -69,7 +69,7 @@ export function CreatorDashboard() {
     <main className="app-shell">
       <button className="mobile-menu" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
       <aside className={`sidebar ${mobileNav ? "open" : ""}`}>
-        <div className="brand"><span className="brand-mark"><Sparkles size={17} /></span><span>ritmo</span></div>
+        <div className="brand"><span className="brand-mark"><Sparkles size={17} /></span><span>ritmo</span><em>beta</em></div>
         <button className="close-mobile" onClick={() => setMobileNav(false)} aria-label="Fechar menu"><X /></button>
         <nav>
           {nav.map(({ label, icon: Icon, active }) => (
@@ -84,13 +84,13 @@ export function CreatorDashboard() {
 
       <section className="workspace">
         <header className="topbar">
-          <div><p>Sexta-feira, 24 de julho</p><h1>Seu ritmo de hoje</h1></div>
-          <div className="top-actions"><button aria-label="Buscar"><Search size={19}/></button><button aria-label="Notificações"><Bell size={19}/><i /></button><button className="primary"><Sparkles size={16}/> Planejar semana</button></div>
+          <div><p>Sexta-feira, 24 de julho</p><h1>Seu conteúdo está ganhando <span>ritmo.</span></h1></div>
+          <div className="top-actions"><div className="ai-status"><i/> IA local pronta</div><button aria-label="Buscar"><Search size={19}/></button><button aria-label="Notificações"><Bell size={19}/><i /></button><button className="primary"><Sparkles size={16}/> Criar com IA</button></div>
         </header>
 
         <section className="overview">
           <article className="welcome-card">
-            <div><span className="eyebrow"><Sparkles size={13}/> FOCO DO DIA</span><h2>Você não precisa fazer tudo.<br/>Só precisa fazer o próximo.</h2><p>Seu calendário tem <strong>1 tarefa importante</strong> e espaço suficiente para terminá-la com calma.</p></div>
+            <div><span className="eyebrow"><Sparkles size={13}/> PULSO DO DIA</span><h2>Crie menos.<br/><span>Conecte mais.</span></h2><p>Seu calendário tem <strong>1 tarefa importante</strong> e espaço suficiente para terminá-la com calma.</p></div>
             <div className="week-score"><span>Ritmo da semana</span><strong>82<small>%</small></strong><div><i style={{width:"82%"}} /></div><small>Consistente e sustentável</small></div>
           </article>
           <div className="metrics">
@@ -127,7 +127,8 @@ export function CreatorDashboard() {
               <p className="task-desc">Revise a sugestão do seu copiloto, ajuste os horários e confirme o ritmo que cabe na sua vida.</p>
               <div className="task-meta"><span><FileText size={15}/> {selectedEvent.status}</span><span><PackageOpen size={15}/> Sem material extra</span></div>
               <div className="suggestion"><Sparkles size={17}/><div><strong>Por que agora?</strong><p>Este horário está livre e mantém seu fim de semana leve.</p></div></div>
-              <button className="task-button">Abrir atividade <ChevronRight size={17}/></button>
+              <button className="task-button"><span>Começar agora</span><ChevronRight size={17}/></button>
+              <button className="adapt-button"><Sparkles size={14}/> Adaptar com IA</button>
             </> : <div className="empty-day"><CalendarDays/><h3>Um dia mais leve</h3><p>Nenhuma atividade planejada. Aproveite para descansar ou capture uma ideia espontânea.</p><button><Plus size={16}/> Adicionar ideia</button></div>}
             <div className="up-next"><span>DEPOIS DISSO</span><div><i>26</i><p><strong>Gravar “Um dia comigo”</strong><small>Domingo · 10:00</small></p><Video size={18}/></div><div><i>27</i><p><strong>Editar lote da semana</strong><small>Segunda · 18:30</small></p><FileText size={18}/></div></div>
           </aside>
@@ -144,6 +145,10 @@ export function CreatorDashboard() {
         </div>
         <div className="composer"><textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => {if(e.key === "Enter" && !e.shiftKey){e.preventDefault();sendMessage();}}} placeholder="Converse com seu especialista..." /><button onClick={sendMessage} aria-label="Enviar"><ChevronRight/></button><small>A IA pode errar. Revise antes de confirmar mudanças.</small></div>
       </aside>
+      <nav className="mobile-bottom" aria-label="Navegação principal">
+        <button><Home/><span>Hoje</span></button><button><CalendarDays/><span>Agenda</span></button>
+        <button className="mobile-create"><Plus/></button><button><Video/><span>Conteúdos</span></button><button><CircleUserRound/><span>Perfil</span></button>
+      </nav>
       {mobileNav && <button className="overlay" onClick={() => setMobileNav(false)} aria-label="Fechar menu"/>}
     </main>
   );

@@ -15,8 +15,8 @@ test("renderiza o dashboard do Ritmo", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Ritmo — seu copiloto de conteúdo/);
-  assert.match(html, /Seu ritmo de hoje/);
-  assert.match(html, /Planejar semana/);
+  assert.match(html, /Seu conteúdo está ganhando/);
+  assert.match(html, /Criar com IA/);
   assert.match(html, /Seu copiloto/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
 });
