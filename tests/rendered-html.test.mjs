@@ -26,6 +26,7 @@ test("renderiza a entrada e o cadastro", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Que bom ter você de volta/);
-  assert.match(html, /Continuar com Google/);
   assert.match(html, /Criar gratuitamente/);
+  assert.match(html, /protegidos na sua conta Ritmo/);
+  assert.doesNotMatch(html, /Continuar com Google/);
 });
