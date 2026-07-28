@@ -30,7 +30,7 @@ test("copiloto usa streaming e histórico persistente", async () => {
 test("worker valida schemas e recupera jobs abandonados", async () => {
   const worker = await readFile(workerPath, "utf8");
   assert.match(worker, /validate_result/);
-  assert.match(worker, /json_schema_for/);
+  assert.match(worker, /ollama_schema_for/);
   assert.match(worker, /requeue_stale_ai_jobs/);
   assert.match(worker, /record_usage\(job, model, started, False\)/);
 });

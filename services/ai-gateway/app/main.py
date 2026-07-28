@@ -56,8 +56,8 @@ class JobRequest(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
-async def identity(authorization: str = Header(...)) -> Identity:
-    if not authorization.startswith("Bearer "):
+async def identity(authorization: str | None = Header(None)) -> Identity:
+    if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Sessão inválida")
     token = authorization.removeprefix("Bearer ").strip()
     try:

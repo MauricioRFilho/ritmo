@@ -1,11 +1,17 @@
+import json
 import unittest
 
 from pydantic import ValidationError
 
-from app.schemas import json_schema_for, validate_result
+from app.schemas import json_schema_for, ollama_schema_for, validate_result
 
 
 class SchemaTests(unittest.TestCase):
+    def test_ollama_schema_removes_large_string_bounds(self):
+        serialized = json.dumps(ollama_schema_for("content.generate"))
+        self.assertNotIn("maxLength", serialized)
+        self.assertIn("maxItems", serialized)
+
     def test_content_package_accepts_a_complete_result(self):
         result = validate_result("content.generate", {
             "objective": "Ensinar um conceito",

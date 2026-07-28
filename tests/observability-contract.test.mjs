@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+test("gateway trata ausência de bearer como 401, não erro de validação", async () => {
+  const source = await readFile(new URL("../services/ai-gateway/app/main.py", import.meta.url), "utf8");
+  assert.match(source, /authorization: str \| None = Header\(None\)/);
+  assert.match(source, /if not authorization or not authorization\.startswith/);
+});
+
 test("gateway emite correlação sem registrar payload ou token", async () => {
   const source = await readFile(new URL("../services/ai-gateway/app/observability.py", import.meta.url), "utf8");
   assert.match(source, /x-request-id/);

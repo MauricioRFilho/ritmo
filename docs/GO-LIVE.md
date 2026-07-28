@@ -1,7 +1,7 @@
 # Go Live do Ritmo
 
-Status em 27/07/2026: **aprovado tecnicamente para staging; abertura pública
-bloqueada por hospedagem da IA, E2E e decisões externas**.
+Status em 28/07/2026: **staging técnico publicado e aprovado; produção pública
+bloqueada somente pelos gates externos e pelo smoke visual autenticado**.
 
 ## Gates
 
@@ -23,7 +23,7 @@ bloqueada por hospedagem da IA, E2E e decisões externas**.
 | Exportação de dados | Implementado | JSON autenticado em `/dados` |
 | Solicitação de exclusão | Workflow implementado | pedido auditável; executor automático com claim, retry e conclusão pós-exclusão |
 | Cotas | Implementado no MVP | contagem horária persistida no Supabase |
-| Testes e CI | Implementado local/arquivo | 24 testes de código + 23 pgTAP (47 verificações); workflow criado, execução remota pendente |
+| Testes e CI | Validado | 26 testes de código + 23 pgTAP (49 verificações) e E2E técnico real; execução remota do workflow pendente |
 | Observabilidade | Parcial | logs correlacionados e rotação Docker na VPS; faltam destino e alertas |
 | Três nichos validados | Bloqueado externo | requer criadores piloto |
 | Suporte | Bloqueado externo | definir canal, responsáveis e SLA |
@@ -44,19 +44,21 @@ bloqueada por hospedagem da IA, E2E e decisões externas**.
 
 - `npm run check:release`: passou;
 - build: passou;
-- código: 24/24 testes (16 Node + 8 Python);
+- código: 26/26 testes (17 Node + 9 Python);
 - banco/RLS: 23/23 testes;
+- E2E técnico autenticado: passou;
 - dependências de produção: `npm audit --omit=dev` com 0 vulnerabilidades;
 - Docker de produção: configuração validada;
 - CI: workflow versionado;
 - VPS staging: gateway, workers e Ollama estáveis;
 - gateway público HTTPS validado em `https://ritmo-api.gapet.com.br`;
 - evidências: `docs/evidencias/2026-07-27-vps-staging.md` e `docs/evidencias/2026-07-28-tls-qa.md`;
-- Sites: projeto owner-only ainda precisa receber a URL do gateway e passar pelo E2E.
+- Sites: versão 4 owner-only publicada com ambiente revisionado;
+- evidência final: `docs/evidencias/2026-07-28-e2e-staging.md`.
 
 ## Recursos e decisões externos necessários
 
-- publicação e E2E autenticado do frontend de staging;
+- smoke visual autenticado do frontend publicado;
 - projeto Supabase separado de produção;
 - domínio;
 - responsável legal, contato de privacidade e retenção;

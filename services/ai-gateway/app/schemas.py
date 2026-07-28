@@ -82,3 +82,20 @@ def json_schema_for(kind: str) -> dict:
     if model is None:
         raise ValueError(f"Unsupported job kind: {kind}")
     return model.model_json_schema()
+
+
+def ollama_schema_for(kind: str) -> dict:
+    """Remove large string bounds that Ollama cannot compile into a grammar."""
+    schema = json_schema_for(kind)
+
+    def strip_runtime_bounds(value: object) -> None:
+        if isinstance(value, dict):
+            value.pop("maxLength", None)
+            for child in value.values():
+                strip_runtime_bounds(child)
+        elif isinstance(value, list):
+            for child in value:
+                strip_runtime_bounds(child)
+
+    strip_runtime_bounds(schema)
+    return schema

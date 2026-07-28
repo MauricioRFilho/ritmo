@@ -6,8 +6,8 @@
 npm run check
 ```
 
-Executa lint, build, 8 testes Python e 16 testes Node de rotas e contratos.
-Resultado mais recente: **24/24 passaram**.
+Executa lint, build, 9 testes Python e 17 testes Node de rotas e contratos.
+Resultado mais recente: **26/26 passaram**.
 
 ## Gate de banco
 
@@ -76,3 +76,4 @@ desse usuário.
 | 27/07/2026 | fundação | 8/8 | não executado | não implementado | bloquear |
 | 27/07/2026 | vertical slice | 13/13 | 15/15 | pendente de staging | aprovar staging |
 | 27/07/2026 | gate local final | 24/24 | 23/23 | pendente de infraestrutura | aprovar staging |
+| 28/07/2026 | staging publicado | 26/26 | 23/23 | técnico passou; visual manual pendente | aprovar staging técnico |

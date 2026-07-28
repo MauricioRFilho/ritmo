@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from supabase import create_client
 
 from app.observability import get_logger, log_event
-from app.schemas import json_schema_for, validate_result
+from app.schemas import ollama_schema_for, validate_result
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -56,7 +56,7 @@ async def generate(job: dict, model: str) -> dict:
                 "model": model,
                 "prompt": prompt_for(job),
                 "stream": True,
-                "format": json_schema_for(job["kind"]),
+                "format": ollama_schema_for(job["kind"]),
             },
         ) as response:
             response.raise_for_status()

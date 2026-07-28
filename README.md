@@ -58,6 +58,6 @@ npm run check:release
 npm audit --omit=dev --audit-level=low
 ```
 
-Último gate local: **47/47 verificações verdes** e **0 vulnerabilidades** na
+Último gate: **49/49 verificações verdes**, E2E técnico aprovado e **0 vulnerabilidades** na
 árvore de produção. Isso autoriza staging; não substitui o E2E autenticado nem
 os gates externos de produção.
