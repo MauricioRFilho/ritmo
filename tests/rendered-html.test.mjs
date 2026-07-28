@@ -10,15 +10,10 @@ async function render(path = "/") {
   }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-test("renderiza o dashboard do Ritmo", async () => {
+test("protege o dashboard antes da renderização", async () => {
   const response = await render();
-  assert.equal(response.status, 200);
-  const html = await response.text();
-  assert.match(html, /Ritmo — seu copiloto de conteúdo/);
-  assert.match(html, /Seu conteúdo está ganhando/);
-  assert.match(html, /Criar com IA/);
-  assert.match(html, /Seu copiloto/);
-  assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
+  assert.equal(response.status, 307);
+  assert.equal(new URL(response.headers.get("location")).pathname, "/login");
 });
 
 test("renderiza a entrada e o cadastro", async () => {

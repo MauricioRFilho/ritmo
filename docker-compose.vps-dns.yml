@@ -1,0 +1,9 @@
+services:
+  gateway:
+    dns: [8.8.8.8, 8.8.4.4]
+  worker:
+    dns: [8.8.8.8, 8.8.4.4]
+  privacy-worker:
+    dns: [8.8.8.8, 8.8.4.4]
+  ollama:
+    dns: [8.8.8.8, 8.8.4.4]
