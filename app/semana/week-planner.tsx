@@ -16,7 +16,7 @@ type PlanItem = {
 
 type PlanDraft = { rationale: string; items: PlanItem[] };
 
-const gatewayUrl = process.env.NEXT_PUBLIC_AI_GATEWAY_URL ?? "http://localhost:8000";
+const gatewayUrl = "https://ritmo-api.gapet.com.br";
 
 function nextMonday() {
   const date = new Date();
@@ -171,4 +171,3 @@ export function WeekPlanner() {
     </section>
   </main>;
 }
-

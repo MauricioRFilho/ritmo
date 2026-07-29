@@ -105,7 +105,7 @@ function normalizeCreatorContext(value: Record<string, unknown> | null | undefin
     weekly_hours: Number(raw.weekly_hours) || 4, publishing_frequency: text("publishing_frequency"), resources: text("resources"),
     restrictions: text("restrictions"), platforms: uniqueStrings(storedPlatforms).filter((item): item is Platform => item === "instagram" || item === "tiktok") };
 }
-const gatewayUrl = process.env.NEXT_PUBLIC_AI_GATEWAY_URL ?? "http://localhost:8000";
+const gatewayUrl = "https://ritmo-api.gapet.com.br";
 
 function formatDate(value: string | null, options?: Intl.DateTimeFormatOptions) {
   if (!value) return "Sem data";

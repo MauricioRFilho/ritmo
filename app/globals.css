@@ -6,6 +6,9 @@
   --text:#f8f8fb;--muted:#92929d;--lime:#c8ff36;--pink:#ff3cac;
   --purple:#8b5cf6;--cyan:#28d7ff;--orange:#ff754c;
   --gradient:linear-gradient(120deg,#ff3cac 0%,#8b5cf6 48%,#28d7ff 100%);
+  --font-manrope:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-jakarta:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-space:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
