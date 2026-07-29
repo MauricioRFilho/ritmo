@@ -1,0 +1,47 @@
+{
+  "creator_type": "short_video",
+  "project": {
+    "name": "Corrida no frio",
+    "platforms": [
+      "instagram_reels",
+      "tiktok"
+    ],
+    "language": "pt-BR",
+    "duration_seconds": 30,
+    "aspect_ratio": "9:16"
+  },
+  "content": {
+    "topic": "Treino de corrida em uma manhã fria",
+    "objective": "Gerar identificação e motivar corredores amadores",
+    "target_audience": [
+      "corredores iniciantes",
+      "atletas amadores",
+      "pessoas buscando motivação"
+    ],
+    "tone": [
+      "motivacional",
+      "autêntico",
+      "dinâmico"
+    ]
+  },
+  "script": {
+    "hook": "Você também perde a vontade quando esfria?",
+    "introduction": "Hoje Curitiba amanheceu congelando, mas o treino precisava sair.",
+    "development": [
+      "Mostre o início da corrida",
+      "Exiba o relógio marcando o ritmo",
+      "Inclua cenas respirando forte",
+      "Mostre o final do treino"
+    ],
+    "impact_phrase": "A motivação aparece depois que você começa.",
+    "call_to_action": "Salva esse vídeo para lembrar no próximo treino."
+  },
+  "visual_style": {
+    "editing": "fast_paced",
+    "color_grading": "cold_cinematic",
+    "transitions": "smooth",
+    "captions": true,
+    "caption_style": "bold_centered",
+    "music_mood": "energetic"
+  }
+}

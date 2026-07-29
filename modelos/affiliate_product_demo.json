@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "creative_type": "ugc_ad",
+  "metadata": {
+    "title": "Demonstração honesta de produto afiliado",
+    "language": "pt-BR",
+    "platforms": ["instagram_reels", "tiktok"],
+    "objective": "Apresentar utilidade com prova visual sem depoimento inventado",
+    "target_audience": ["compradores pesquisando solução prática"],
+    "tags": ["afiliado", "demonstração", "ugc"]
+  },
+  "constraints": {"aspect_ratio": "9:16", "target_duration_seconds": 35, "max_duration_seconds": 60},
+  "creative": {
+    "personal_hook": "Antes de comprar, olha o que este produto realmente faz.",
+    "relatable_problem": "Descreva um problema observável, sem exagerar a dor.",
+    "product_in_use": "Demonstre uma função real em plano fechado.",
+    "benefit": {"claim": "Benefício verificável do briefing", "proof_shot": "Resultado visível durante o uso", "evidence_required": true},
+    "honest_qualification": "Diga para quem o produto pode não servir.",
+    "offer": "Só mencione preço, promoção ou cupom fornecidos pela campanha.",
+    "call_to_action": "Confira os detalhes no link antes de decidir."
+  },
+  "production": {"camera_style": "selfie + close do uso", "paid_partnership_disclosure": true, "usage_rights_required": true, "music_rights_required": true},
+  "provenance": {"origin": "seed", "template_id": "affiliate-demo-v1", "template_version": 1}
+}

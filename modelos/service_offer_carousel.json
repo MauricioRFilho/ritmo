@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "creative_type": "instagram_carousel",
+  "metadata": {
+    "title": "Carrossel de venda consultiva para serviço",
+    "language": "pt-BR",
+    "platforms": ["instagram_feed"],
+    "objective": "Explicar problema, método e próximo passo sem promessa garantida",
+    "target_audience": ["potenciais clientes em fase de consideração"],
+    "tags": ["serviço", "vendas", "educacional"]
+  },
+  "constraints": {"dimensions": {"width": 1080, "height": 1350}, "max_slides": 8},
+  "creative": {
+    "sequence_locked": true,
+    "story_arc": "diagnóstico → custo do problema → método → prova permitida → CTA",
+    "slides": [
+      {"slide": 1, "role": "cover", "headline": "Seu problema não começa onde parece", "body": "Uma promessa específica baseada no briefing.", "visual": "Um único símbolo do problema", "alt_text": "Capa com título e símbolo do problema"},
+      {"slide": 2, "role": "diagnosis", "headline": "O sinal", "body": "Sintoma observável pelo público.", "visual": "Situação cotidiana", "alt_text": "Pessoa vivenciando o sintoma descrito no conteúdo"},
+      {"slide": 3, "role": "cause", "headline": "A causa provável", "body": "Explicação sem diagnóstico absoluto.", "visual": "Diagrama simples", "alt_text": "Diagrama simples mostrando a possível causa do problema"},
+      {"slide": 4, "role": "method", "headline": "Como trabalhamos", "body": "Etapa concreta do serviço.", "visual": "Processo em três passos", "alt_text": "Processo do serviço organizado em três passos"},
+      {"slide": 5, "role": "proof", "headline": "O que pode ser verificado", "body": "Caso, demonstração ou evidência autorizada.", "visual": "Prova com fonte", "alt_text": "Evidência autorizada acompanhada da fonte"},
+      {"slide": 6, "role": "qualification", "headline": "Para quem faz sentido", "body": "Critérios de aderência e limites.", "visual": "Checklist", "alt_text": "Lista de critérios que indicam para quem o serviço é adequado"},
+      {"slide": 7, "role": "cta", "headline": "Quer avaliar o seu caso?", "body": "Envie a palavra DIAGNÓSTICO para receber o próximo passo.", "visual": "CTA simples", "alt_text": "Convite para enviar a palavra Diagnóstico e receber o próximo passo"}
+    ]
+  },
+  "production": {"visual_consistency": true, "safe_margin": true, "one_idea_per_slide": true},
+  "provenance": {"origin": "seed", "template_id": "service-offer-carousel-v1", "template_version": 1}
+}
+

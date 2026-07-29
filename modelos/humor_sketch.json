@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "creative_type": "short_video",
+  "metadata": {
+    "title": "Expectativa x realidade do home office",
+    "language": "pt-BR",
+    "platforms": ["instagram_reels", "tiktok"],
+    "objective": "Gerar identificação por humor observacional",
+    "target_audience": ["profissionais remotos", "freelancers"],
+    "tags": ["humor", "sketch", "relatable"]
+  },
+  "constraints": {"aspect_ratio": "9:16", "target_duration_seconds": 28, "max_duration_seconds": 45},
+  "creative": {
+    "hook": {"spoken": "Home office vai me dar muito mais tempo, eu disse.", "visual": "Criador confiante abrindo o notebook; relógio marca 08:00", "purpose": "identificação"},
+    "scenes": [
+      {"order": 1, "duration_seconds": 4, "visual": "Plano organizado e café intacto", "spoken_line": "Hoje eu termino tudo cedo.", "overlay": "08:00 — EXPECTATIVA"},
+      {"order": 2, "duration_seconds": 8, "visual": "Cortes rápidos entre reunião, entrega e campainha", "spoken_line": "Só uma reunião rápida, um ajuste e uma entrega.", "overlay": "11:47"},
+      {"order": 3, "duration_seconds": 8, "visual": "Criador almoçando diante do notebook", "spoken_line": "Pelo menos eu ganho tempo no almoço.", "overlay": "15:32 — ALMOÇO"},
+      {"order": 4, "duration_seconds": 6, "visual": "Criador fecha o notebook e recebe nova notificação", "spoken_line": "Amanhã eu começo a me organizar.", "overlay": "19:18"}
+    ],
+    "cta": "Manda para quem também descobriu esse lado do home office."
+  },
+  "production": {"captions": true, "safe_zone": true, "audio": "efeitos de notificação e pausas cômicas"},
+  "provenance": {"origin": "seed", "template_id": "humor-sketch-v1", "template_version": 1}
+}

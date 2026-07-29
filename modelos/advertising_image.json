@@ -1,0 +1,59 @@
+{
+  "creator_type": "advertising_image",
+  "output": {
+    "format": "png",
+    "width": 1080,
+    "height": 1920,
+    "aspect_ratio": "9:16",
+    "quality": "high"
+  },
+  "subject": {
+    "type": "male_athlete",
+    "age_range": "25-35",
+    "appearance": {
+      "body_type": "athletic",
+      "hair": "short_dark_hair",
+      "expression": "confident"
+    },
+    "clothing": [
+      "camiseta esportiva preta",
+      "short de corrida",
+      "óculos esportivo"
+    ]
+  },
+  "scene": {
+    "location": "parque urbano",
+    "time": "sunrise",
+    "weather": "light_fog",
+    "action": "running_toward_camera",
+    "background": "trees_and_running_track"
+  },
+  "art_direction": {
+    "style": "cinematic_sports_campaign",
+    "lighting": "dramatic_natural_light",
+    "camera": "low_angle",
+    "depth_of_field": "shallow",
+    "motion_effect": "subtle_motion_blur",
+    "color_palette": [
+      "black",
+      "orange",
+      "dark_green"
+    ]
+  },
+  "text_overlay": {
+    "enabled": true,
+    "headline": "NÃO ESPERE A MOTIVAÇÃO",
+    "subheadline": "Comece. Ela aparece no caminho.",
+    "position": "upper_center",
+    "font_style": "bold_condensed",
+    "safe_margin": true
+  },
+  "negative_prompt": [
+    "mãos deformadas",
+    "dedos extras",
+    "rosto distorcido",
+    "texto ilegível",
+    "logotipos aleatórios",
+    "baixa resolução"
+  ]
+}

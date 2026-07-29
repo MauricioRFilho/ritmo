@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "library_id": "ritmo-seed-creatives",
+  "approval_policy": {
+    "creative_snapshot": "content_versions",
+    "memory_status": "suggested",
+    "performance_status": [
+      "unmeasured",
+      "measured",
+      "performance_validated"
+    ]
+  },
+  "templates": [
+    {
+      "id": "advertising-image-v1",
+      "creative_type": "advertising_image",
+      "source": "advertising_image.json"
+    },
+    {
+      "id": "instagram-carousel-v1",
+      "creative_type": "instagram_carousel",
+      "source": "instagram_carousel.json"
+    },
+    {
+      "id": "short-video-v1",
+      "creative_type": "short_video",
+      "source": "short_video.json"
+    },
+    {
+      "id": "tech-educational-video-v1",
+      "creative_type": "tech_educational_video",
+      "source": "tech_educational_video.json"
+    },
+    {
+      "id": "ugc-ad-v1",
+      "creative_type": "ugc_ad",
+      "source": "ugc.json"
+    },
+    {
+      "id": "humor-sketch-v1",
+      "creative_type": "short_video",
+      "source": "humor_sketch.json"
+    },
+    {
+      "id": "affiliate-demo-v1",
+      "creative_type": "ugc_ad",
+      "source": "affiliate_product_demo.json"
+    },
+    {
+      "id": "service-offer-carousel-v1",
+      "creative_type": "instagram_carousel",
+      "source": "service_offer_carousel.json"
+    }
+  ]
+}
+

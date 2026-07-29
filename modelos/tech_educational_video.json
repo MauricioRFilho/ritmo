@@ -1,0 +1,61 @@
+{
+  "creator_type": "tech_educational_video",
+  "project": {
+    "title": "Como automatizei meu planejamento de treinos",
+    "platform": "instagram_reels",
+    "duration_seconds": 45,
+    "language": "pt-BR"
+  },
+  "topic": {
+    "category": "artificial_intelligence",
+    "main_subject": "Automação de treinos usando inteligência artificial",
+    "difficulty": "beginner_friendly"
+  },
+  "audience": {
+    "primary": [
+      "desenvolvedores",
+      "criadores de conteúdo",
+      "atletas amadores"
+    ],
+    "knowledge_level": "basic"
+  },
+  "script": {
+    "hook_options": [
+      "Eu parei de montar meus treinos manualmente.",
+      "Criei uma IA que organiza minha rotina de treino.",
+      "Foi assim que juntei programação e corrida."
+    ],
+    "selected_hook": "Criei uma IA que organiza minha rotina de treino.",
+    "context": "Eu precisava conciliar corrida, musculação, trabalho e recuperação.",
+    "steps": [
+      "Recebo os dados dos treinos anteriores",
+      "Analiso volume, intensidade e disponibilidade",
+      "A IA sugere a organização da semana",
+      "Eu reviso tudo antes de executar"
+    ],
+    "warning": "A ferramenta ajuda na organização, mas não substitui um treinador.",
+    "call_to_action": "Você usaria uma ferramenta assim?"
+  },
+  "visual_plan": [
+    {
+      "timestamp": "00:00-00:03",
+      "visual": "Criador falando diretamente para a câmera",
+      "overlay": "CRIEI UMA IA PARA MEUS TREINOS"
+    },
+    {
+      "timestamp": "00:03-00:15",
+      "visual": "Gravação da interface do programa",
+      "overlay": "Dados → Análise → Planejamento"
+    },
+    {
+      "timestamp": "00:15-00:30",
+      "visual": "Código e calendário semanal",
+      "overlay": "Corrida + Academia + Recuperação"
+    },
+    {
+      "timestamp": "00:30-00:45",
+      "visual": "Criador correndo no parque",
+      "overlay": "Você usaria?"
+    }
+  ]
+}
