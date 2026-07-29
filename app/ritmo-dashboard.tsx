@@ -106,6 +106,29 @@ function normalizeCreatorContext(value: Record<string, unknown> | null | undefin
     restrictions: text("restrictions"), platforms: uniqueStrings(storedPlatforms).filter((item): item is Platform => item === "instagram" || item === "tiktok") };
 }
 const gatewayUrl = "https://ritmo-api.gapet.com.br";
+const genericScriptTerms = new Set(["gancho", "ganchos", "cena", "cenas", "fala", "falas", "exercicio", "exercicios", "captacao", "edicao", "texto", "visual", "cta", "legenda"]);
+
+function assertUsefulContentPackage(value: unknown, format: string): asserts value is ContentPackage {
+  if (!value || typeof value !== "object") throw new Error("A IA não entregou um roteiro estruturado.");
+  const result = value as Partial<ContentPackage>;
+  const useful = (text: unknown) => {
+    if (typeof text !== "string" || text.trim().length < 8) return false;
+    const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+    return !genericScriptTerms.has(normalized);
+  };
+  if (!Array.isArray(result.hooks) || result.hooks.length !== 3 || result.hooks.some((hook) => !useful(hook))) throw new Error("A IA trouxe ganchos genéricos. Vamos gerar uma proposta melhor.");
+  if (new Set(result.hooks.map((hook) => hook.trim().toLowerCase())).size !== 3) throw new Error("A IA repetiu os ganchos.");
+  if (!Array.isArray(result.scenes) || result.scenes.length < 2 || result.scenes.length > 8) throw new Error("A quantidade de cenas não serve para um vídeo curto.");
+  let duration = 0;
+  result.scenes.forEach((scene, index) => {
+    if (scene.order !== index + 1 || !useful(scene.visual) || !useful(scene.speech) || !Number.isInteger(scene.duration_seconds) || scene.duration_seconds < 2 || scene.duration_seconds > 20) throw new Error(`A cena ${index + 1} precisa de mais detalhes.`);
+    duration += scene.duration_seconds;
+  });
+  const maximum = format === "carousel" ? null : format === "story" ? 45 : 60;
+  if (maximum !== null && (duration < 15 || duration > maximum)) throw new Error(`O roteiro ficou com ${duration}s; o limite deste formato é ${maximum}s.`);
+  if (!Array.isArray(result.capture_notes) || !Array.isArray(result.editing_notes) || !Array.isArray(result.hashtags)) throw new Error("As orientações do roteiro vieram incompletas.");
+  if (!useful(result.objective) || !useful(result.caption) || !useful(result.cta)) throw new Error("Objetivo, legenda ou CTA vieram genéricos.");
+}
 
 function formatDate(value: string | null, options?: Intl.DateTimeFormatOptions) {
   if (!value) return "Sem data";
@@ -324,8 +347,9 @@ export function RitmoDashboard() {
         const job = await statusResponse.json();
         setJobStatus(job.status === "waiting_retry" ? "Tentando novamente..." : `Geração: ${statusLabel(job.status)}`);
         if (job.status === "completed") {
-          setDraft(job.result as ContentPackage);
-          setJobStatus("Roteiro pronto para sua revisão.");
+          assertUsefulContentPackage(job.result, plan.format);
+          setDraft(job.result);
+          setJobStatus("Roteiro curto pronto para sua revisão.");
           await db.from("content_plans").update({ status: "review" }).eq("id", plan.id);
           await loadData();
           return;
@@ -333,9 +357,9 @@ export function RitmoDashboard() {
         if (["failed", "cancelled"].includes(job.status)) throw new Error(job.error_code ?? job.status);
       }
       throw new Error("Tempo limite excedido");
-    } catch {
+    } catch (generationError) {
       await db.from("content_plans").update({ status: "idea" }).eq("id", plan.id);
-      setJobStatus("A geração falhou. Sua ideia foi preservada; tente novamente.");
+      setJobStatus(generationError instanceof Error ? generationError.message : "A geração falhou. Sua ideia foi preservada; tente novamente.");
     }
   }
 
@@ -350,6 +374,12 @@ export function RitmoDashboard() {
       caption: String(form.get("caption")),
       cta: String(form.get("cta")),
     };
+    try {
+      assertUsefulContentPackage(edited, selectedPlan.format);
+    } catch (validationError) {
+      setError(validationError instanceof Error ? validationError.message : "Revise o roteiro antes de confirmar.");
+      return;
+    }
     const { data: versions } = await db.from("content_versions").select("version").eq(
       "content_plan_id", selectedPlan.id,
     ).order("version", { ascending: false }).limit(1);
@@ -767,11 +797,14 @@ function StudioDialog({ plan, draft, status, onClose, onSubmit }: {
   plan: ContentPlan; draft: ContentPackage | null; status: string; onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const totalDuration = draft?.scenes.reduce((total, scene) => total + scene.duration_seconds, 0) ?? 0;
+  const durationLimit = plan.format === "story" ? 45 : 60;
   return <div className="modal-backdrop studio-backdrop"><form className="product-modal studio-modal" onSubmit={onSubmit}><button type="button" className="modal-close" onClick={onClose}><X/></button>
     <p className="eyebrow">ESTÚDIO DE CONTEÚDO</p><h2>{plan.title}</h2><div className="job-status">{draft ? <Check/> : <LoaderCircle className="spin"/>}<span>{status}</span></div>
     {!draft ? <div className="generation-wait"><Sparkles/><strong>Preparando uma proposta estruturada</strong><span>Sua ideia original foi preservada.</span></div> :
-      <><section className="draft-section"><span>GANCHOS</span>{draft.hooks.map((hook) => <p key={hook}>{hook}</p>)}</section>
+      <>{plan.format !== "carousel" && <div className="script-duration"><strong>{totalDuration}s</strong><span>Duração estimada · máximo {durationLimit}s</span></div>}<section className="draft-section"><span>3 OPÇÕES DE GANCHO</span>{draft.hooks.map((hook) => <p key={hook}>{hook}</p>)}</section>
         <section className="scene-list"><span>CENAS</span>{draft.scenes.map((scene) => <article key={scene.order}><i>{scene.order}</i><div><strong>{scene.visual}</strong><p>{scene.speech}</p><small>{scene.duration_seconds}s</small></div></article>)}</section>
+        {(draft.capture_notes.length > 0 || draft.editing_notes.length > 0) && <section className="draft-section"><span>COMO GRAVAR E EDITAR</span>{draft.capture_notes.map((note) => <p key={"capture-" + note}>Captação: {note}</p>)}{draft.editing_notes.map((note) => <p key={"editing-" + note}>Edição: {note}</p>)}</section>}
         <label>Legenda<textarea name="caption" required defaultValue={draft.caption}/></label><label>CTA<input name="cta" required defaultValue={draft.cta}/></label>
         <label>Agendar para<input name="scheduled_for" type="datetime-local" required min={new Date().toISOString().slice(0, 16)}/></label>
         <div className="human-confirmation"><Check/><span>Ao confirmar, você cria uma versão imutável e aprova o agendamento.</span></div>

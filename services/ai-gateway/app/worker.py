@@ -30,14 +30,31 @@ def prompt_for(job: dict) -> str:
     instructions = {
         "plan.generate": "Crie um plano semanal sustentável, sem conflitos e usando apenas os recursos informados.",
         "plan.revise": "Revise o plano preservando itens bloqueados manualmente.",
-        "content.generate": "Crie um pacote completo: objetivo, 3 ganchos, cenas, falas, captação, edição, legenda, CTA, hashtags e horário.",
+        "content.generate": (
+            "Crie uma proposta específica, útil e pronta para produção no formato solicitado. "
+            "Entregue exatamente 3 opções de gancho diferentes e 2 a 8 cenas em ordem sequencial. "
+            "Cada cena deve dizer concretamente o que aparece e o texto exato do criador ou da peça. "
+            "Use título, objetivo, nicho, público, estilo e recursos recebidos; não invente credenciais ou resultados. "
+            "Nunca use nomes de campos ou placeholders como conteúdo, incluindo ganchos, cenas, falas, "
+            "captação, edição ou exercícios. A legenda complementa a peça e o CTA é coerente com o objetivo."
+        ),
         "content.revise": "Revise somente os campos pedidos e mantenha as demais decisões.",
         "memories.extract": "Extraia apenas preferências duráveis não sensíveis. Retorne sugestões revisáveis.",
         "conversations.summarize": "Resuma fatos, decisões, preferências e pendências sem inventar.",
         "trends.research": "Interprete as evidências fornecidas; não invente tendências ou fontes.",
     }
+    instruction = instructions.get(job["kind"], "Ajude o criador.")
+    if job["kind"] in {"content.generate", "content.revise"}:
+        content_format = str(job.get("payload", {}).get("format", "short-video"))
+        format_rules = {
+            "carousel": "Para carrossel, trate cada cena como um card com composição visual e texto específicos; use duração 2 apenas como metadado técnico.",
+            "story": "Para Story, some entre 15 e 45 segundos e limite cada quadro a 15 segundos.",
+            "reel": "Para Reel, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
+            "short-video": "Para vídeo curto, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
+        }
+        instruction = f"{instruction} {format_rules.get(content_format, format_rules['short-video'])}"
     payload = json.dumps(job["payload"], ensure_ascii=False)
-    return f"{instructions.get(job['kind'], 'Ajude o criador.')}\nDADOS:\n{payload}\nResponda em JSON válido."
+    return f"{instruction}\nDADOS:\n{payload}\nResponda somente com o JSON válido do schema."
 
 
 def is_cancelled(job_id: str) -> bool:
@@ -71,7 +88,7 @@ async def generate(job: dict, model: str) -> dict:
                         raise JobCancelled()
     if is_cancelled(job["id"]):
         raise JobCancelled()
-    return validate_result(job["kind"], json.loads("".join(parts) or "{}"))
+    return validate_result(job["kind"], json.loads("".join(parts) or "{}"), job.get("payload"))
 
 
 async def run_job(job: dict):

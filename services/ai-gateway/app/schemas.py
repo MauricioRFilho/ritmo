@@ -1,27 +1,85 @@
 from __future__ import annotations
 
 from typing import Literal
+import unicodedata
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
+
+
+_PLACEHOLDERS = {
+    "gancho", "ganchos", "cena", "cenas", "fala", "falas", "exercicio",
+    "exercicios", "captacao", "captação", "edicao", "edição", "texto",
+    "visual", "cta", "legenda", "hashtag", "hashtags",
+}
+
+
+def _useful_text(value: str) -> str:
+    cleaned = value.strip()
+    normalized = "".join(
+        char for char in unicodedata.normalize("NFKD", cleaned.casefold())
+        if not unicodedata.combining(char)
+    ).strip(" .,:;!?-_")
+    if normalized in _PLACEHOLDERS or len(cleaned) < 8:
+        raise ValueError("texto genérico ou curto demais")
+    return cleaned
 
 
 class ContentScene(BaseModel):
-    order: int = Field(ge=1)
-    visual: str = Field(min_length=1, max_length=1000)
-    speech: str = Field(min_length=1, max_length=2000)
-    duration_seconds: int = Field(ge=1, le=300)
+    order: int = Field(ge=1, le=8)
+    visual: str = Field(min_length=8, max_length=500)
+    speech: str = Field(min_length=8, max_length=800)
+    duration_seconds: int = Field(ge=2, le=20)
+
+    @field_validator("visual", "speech")
+    @classmethod
+    def scene_text_must_be_useful(cls, value: str) -> str:
+        return _useful_text(value)
 
 
 class ContentPackage(BaseModel):
-    objective: str = Field(min_length=1, max_length=500)
-    hooks: list[str] = Field(min_length=1, max_length=5)
-    scenes: list[ContentScene] = Field(min_length=1, max_length=30)
-    capture_notes: list[str] = Field(default_factory=list, max_length=20)
-    editing_notes: list[str] = Field(default_factory=list, max_length=20)
-    caption: str = Field(min_length=1, max_length=5000)
-    cta: str = Field(min_length=1, max_length=500)
-    hashtags: list[str] = Field(default_factory=list, max_length=30)
+    objective: str = Field(min_length=8, max_length=500)
+    hooks: list[str] = Field(min_length=3, max_length=3)
+    scenes: list[ContentScene] = Field(min_length=2, max_length=8)
+    capture_notes: list[str] = Field(default_factory=list, max_length=8)
+    editing_notes: list[str] = Field(default_factory=list, max_length=8)
+    caption: str = Field(min_length=8, max_length=2200)
+    cta: str = Field(min_length=8, max_length=300)
+    hashtags: list[str] = Field(default_factory=list, max_length=10)
     suggested_time: str | None = None
+
+    @field_validator("objective", "caption", "cta")
+    @classmethod
+    def main_text_must_be_useful(cls, value: str) -> str:
+        return _useful_text(value)
+
+    @field_validator("hooks")
+    @classmethod
+    def hooks_must_be_specific(cls, values: list[str]) -> list[str]:
+        cleaned = [_useful_text(value) for value in values]
+        if len({value.casefold() for value in cleaned}) != len(cleaned):
+            raise ValueError("ganchos duplicados")
+        return cleaned
+
+    @field_validator("capture_notes", "editing_notes")
+    @classmethod
+    def notes_must_be_specific(cls, values: list[str]) -> list[str]:
+        return [_useful_text(value) for value in values]
+
+    @model_validator(mode="after")
+    def enforce_short_video_contract(self, info: ValidationInfo) -> "ContentPackage":
+        total = sum(scene.duration_seconds for scene in self.scenes)
+        content_format = str((info.context or {}).get("format", "short-video"))
+        if content_format != "carousel":
+            maximum = 45 if content_format == "story" else 60
+            if total < 15 or total > maximum:
+                raise ValueError(f"roteiro deve durar entre 15 e {maximum} segundos")
+        orders = [scene.order for scene in self.scenes]
+        if orders != list(range(1, len(self.scenes) + 1)):
+            raise ValueError("cenas devem ter ordem sequencial")
+        signatures = {(scene.visual.casefold(), scene.speech.casefold()) for scene in self.scenes}
+        if len(signatures) != len(self.scenes):
+            raise ValueError("cenas duplicadas")
+        return self
 
 
 class PlanItem(BaseModel):
@@ -70,11 +128,12 @@ RESULT_MODELS = {
 }
 
 
-def validate_result(kind: str, value: object) -> dict:
+def validate_result(kind: str, value: object, payload: dict | None = None) -> dict:
     model = RESULT_MODELS.get(kind)
     if model is None:
         raise ValueError(f"Unsupported job kind: {kind}")
-    return model.model_validate(value).model_dump(mode="json")
+    context = {"format": (payload or {}).get("format", "short-video")}
+    return model.model_validate(value, context=context).model_dump(mode="json")
 
 
 def json_schema_for(kind: str) -> dict:
