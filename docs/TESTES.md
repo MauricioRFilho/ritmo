@@ -77,3 +77,11 @@ desse usuário.
 | 27/07/2026 | vertical slice | 13/13 | 15/15 | pendente de staging | aprovar staging |
 | 27/07/2026 | gate local final | 24/24 | 23/23 | pendente de infraestrutura | aprovar staging |
 | 28/07/2026 | staging publicado | 26/26 | 23/23 | técnico passou; visual manual pendente | aprovar staging técnico |
+
+## 2026-07-29 — Contexto criativo v2
+
+- `npm run check`: build + lint + 26 Node + 13 Python aprovados.
+- `npm run test:db`: 23 pgTAP aprovados.
+- Cobertura adicionada: legado/v2, deduplicação de nichos, editor com estados de salvamento, separação de estilo/monetização e guardrails de tipografia/copiloto.
+- Evidência: `docs/evidencias/2026-07-29-contexto-v2.md`.
+- Risco residual: navegador conectado indisponível; smoke visual manual pós-deploy.

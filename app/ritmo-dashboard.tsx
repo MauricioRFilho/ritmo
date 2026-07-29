@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  BarChart3, CalendarDays, Check, ChevronRight, CircleUserRound, Clock3,
+  BarChart3, CalendarDays, Check, ChevronRight, CircleUserRound,
   FileText, Home, Lightbulb, LoaderCircle, LogOut, Menu, Plus, RefreshCw,
-  Send, Sparkles, Target, Video, X,
+  Send, Sparkles, Video, X,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { hasSupabaseConfig, supabase } from "../lib/supabase-browser";
@@ -50,6 +50,15 @@ type ContentPackage = {
 type ChatMessage = { id?: string; role: "user" | "assistant"; content: string };
 type Memory = { id: string; category: string; content: string; status: string; confidence: number };
 type Publication = { id: string; content_plan_id: string | null; metrics: Record<string, number>; published_at: string };
+type ContentTaxonomyV2 = { schema_version: 2; primary_niche_id: string; secondary_niche_ids: string[]; custom_niches: string[] };
+type CreatorContext = {
+  content_pillars: string; audience: string; audience_needs: string; audience_interests: string; audience_region: string;
+  style: string; monetization: string; objectives: string; preferred_cta: string; priority_metrics: string;
+  operation: string; weekly_hours: number; publishing_frequency: string; resources: string; restrictions: string; platforms: Platform[];
+};
+type PlatformProfile = { platform: Platform };
+type SaveState = "idle" | "saving" | "success" | "error";
+type ContextSavePayload = { displayName: string; accountMode: AccountMode; taxonomy: ContentTaxonomyV2; context: CreatorContext };
 
 const navigation = [
   { id: "today" as View, label: "Hoje", icon: Home },
@@ -61,14 +70,41 @@ const navigation = [
 ];
 
 const niches = [
-  ["influencer-geral", "Lifestyle"],
-  ["esporte-geral", "Esporte"],
-  ["corrida", "Corrida"],
-  ["maquiagem-beauty", "Maquiagem / Beauty"],
-  ["culinaria", "Culinária"],
-  ["negocios-educacao-financeira", "Negócios / Finanças"],
-];
+  ["humor-comedia", "Humor / Comédia"], ["influencer-geral", "Lifestyle"], ["beleza", "Beleza"], ["moda", "Moda"],
+  ["culinaria", "Culinária"], ["saude-bem-estar", "Saúde / Bem-estar"], ["fitness", "Fitness"], ["esporte-geral", "Esportes"],
+  ["corrida", "Corrida"], ["games", "Games"], ["tecnologia", "Tecnologia"], ["educacao", "Educação"], ["financas", "Finanças"],
+  ["negocios", "Negócios"], ["marketing", "Marketing"], ["carreira", "Carreira"], ["relacionamentos", "Relacionamentos"],
+  ["familia", "Família"], ["viagens", "Viagens"], ["musica", "Música"], ["arte-cultura", "Arte / Cultura"], ["pets", "Pets"],
+  ["casa-decoracao", "Casa / Decoração"], ["diy", "DIY"], ["sustentabilidade", "Sustentabilidade"],
+  ["noticias-opiniao", "Notícias / Opinião"], ["fe-espiritualidade", "Fé / Espiritualidade"], ["entretenimento", "Entretenimento"],
+  ["automotivo", "Automotivo"], ["agro", "Agro"], ["juridico", "Jurídico"], ["imobiliario", "Imobiliário"], ["outros", "Outros"],
+] as const;
 
+const legacyNicheAliases: Record<string, string> = { "maquiagem-beauty": "beleza", "negocios-educacao-financeira": "negocios" };
+const emptyContext: CreatorContext = {
+  content_pillars: "", audience: "", audience_needs: "", audience_interests: "", audience_region: "", style: "", monetization: "",
+  objectives: "", preferred_cta: "", priority_metrics: "", operation: "", weekly_hours: 4, publishing_frequency: "", resources: "",
+  restrictions: "", platforms: ["instagram"],
+};
+
+function uniqueStrings(values: unknown[]) { return [...new Set(values.map((value) => String(value).trim()).filter(Boolean))]; }
+function normalizeNicheId(value: unknown) { const id = String(value ?? ""); return legacyNicheAliases[id] ?? id; }
+function normalizeTaxonomy(value: unknown, fallbackNiche: unknown): ContentTaxonomyV2 {
+  const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const primary = normalizeNicheId(raw.primary_niche_id ?? raw.niche_id ?? fallbackNiche);
+  return { schema_version: 2, primary_niche_id: primary,
+    secondary_niche_ids: uniqueStrings(Array.isArray(raw.secondary_niche_ids) ? raw.secondary_niche_ids : []).map(normalizeNicheId).filter((id) => id !== primary),
+    custom_niches: uniqueStrings(Array.isArray(raw.custom_niches) ? raw.custom_niches : []) };
+}
+function normalizeCreatorContext(value: Record<string, unknown> | null | undefined, platforms: Platform[]): CreatorContext {
+  const raw = value ?? {}; const text = (key: string) => typeof raw[key] === "string" ? String(raw[key]) : "";
+  const storedPlatforms = Array.isArray(raw.platforms) ? raw.platforms : platforms;
+  return { ...emptyContext, content_pillars: text("content_pillars"), audience: text("audience"), audience_needs: text("audience_needs"),
+    audience_interests: text("audience_interests"), audience_region: text("audience_region"), style: text("style"), monetization: text("monetization"),
+    objectives: text("objectives"), preferred_cta: text("preferred_cta"), priority_metrics: text("priority_metrics"), operation: text("operation"),
+    weekly_hours: Number(raw.weekly_hours) || 4, publishing_frequency: text("publishing_frequency"), resources: text("resources"),
+    restrictions: text("restrictions"), platforms: uniqueStrings(storedPlatforms).filter((item): item is Platform => item === "instagram" || item === "tiktok") };
+}
 const gatewayUrl = process.env.NEXT_PUBLIC_AI_GATEWAY_URL ?? "http://localhost:8000";
 
 function formatDate(value: string | null, options?: Intl.DateTimeFormatOptions) {
@@ -100,6 +136,8 @@ export function RitmoDashboard() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [niche, setNiche] = useState("");
+  const [taxonomy, setTaxonomy] = useState<ContentTaxonomyV2>(() => normalizeTaxonomy({}, ""));
+  const [platformProfiles, setPlatformProfiles] = useState<PlatformProfile[]>([]);
   const [ideaOpen, setIdeaOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<ContentPlan | null>(null);
@@ -125,12 +163,13 @@ export function RitmoDashboard() {
       return;
     }
     const userId = auth.session.user.id;
-    const [profileResult, plansResult, preferencesResult, memoriesResult, publicationsResult] = await Promise.all([
+    const [profileResult, plansResult, preferencesResult, memoriesResult, publicationsResult, platformsResult] = await Promise.all([
       db.from("profiles").select("*").eq("user_id", userId).single(),
       db.from("content_plans").select("*").order("scheduled_for", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }),
       db.from("creator_preferences").select("niche_id,value").eq("category", "content_taxonomy").maybeSingle(),
       db.from("creator_memories").select("id,category,content,status,confidence").order("created_at", { ascending: false }),
       db.from("publication_results").select("id,content_plan_id,metrics,published_at").order("published_at", { ascending: false }),
+      db.from("platform_profiles").select("platform"),
     ]);
     if (profileResult.error) {
       setError("Não foi possível carregar seu perfil.");
@@ -138,7 +177,10 @@ export function RitmoDashboard() {
       setProfile(profileResult.data as Profile);
     }
     setPlans((plansResult.data ?? []) as ContentPlan[]);
-    setNiche(preferencesResult.data?.niche_id ?? "");
+    const loadedTaxonomy = normalizeTaxonomy(preferencesResult.data?.value, preferencesResult.data?.niche_id);
+    setTaxonomy(loadedTaxonomy);
+    setNiche(loadedTaxonomy.primary_niche_id);
+    setPlatformProfiles((platformsResult.data ?? []) as PlatformProfile[]);
     setMemories((memoriesResult.data ?? []) as Memory[]);
     setPublications((publicationsResult.data ?? []) as Publication[]);
     setLoading(false);
@@ -167,37 +209,51 @@ export function RitmoDashboard() {
     const form = new FormData(event.currentTarget);
     const displayName = String(form.get("display_name") ?? "").trim();
     const accountMode = String(form.get("account_mode")) as AccountMode;
-    const selectedNiche = String(form.get("niche_id"));
+    const selectedNiche = normalizeNicheId(form.get("niche_id"));
     const platform = String(form.get("platform")) as Platform;
     const weeklyHours = Number(form.get("weekly_hours"));
-    setNotice("Salvando seu contexto...");
-    const { error: profileError } = await db.from("profiles").update({
-      display_name: displayName,
-      account_mode: accountMode,
-      onboarding_completed: true,
-      context: { weekly_hours: weeklyHours },
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", profile.user_id);
-    const { error: preferenceError } = await db.from("creator_preferences").upsert({
-      user_id: profile.user_id,
-      category: "content_taxonomy",
-      niche_id: selectedNiche,
-      value: { niche_id: selectedNiche },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id,category" });
-    const { error: platformError } = await db.from("platform_profiles").upsert({
-      user_id: profile.user_id,
-      platform,
-    }, { onConflict: "user_id,platform" });
+    const nextTaxonomy = normalizeTaxonomy({ primary_niche_id: selectedNiche }, selectedNiche);
+    const nextContext = { ...profile.context, weekly_hours: weeklyHours, platforms: [platform] };
+    setNotice("Salvando seu contexto..."); setError("");
+    const { error: profileError } = await db.from("profiles").update({ display_name: displayName, account_mode: accountMode,
+      onboarding_completed: true, context: nextContext, updated_at: new Date().toISOString() }).eq("user_id", profile.user_id);
+    const { error: preferenceError } = await db.from("creator_preferences").upsert({ user_id: profile.user_id, category: "content_taxonomy",
+      niche_id: selectedNiche, value: nextTaxonomy, updated_at: new Date().toISOString() }, { onConflict: "user_id,category" });
+    const { error: platformError } = await db.from("platform_profiles").upsert({ user_id: profile.user_id, platform }, { onConflict: "user_id,platform" });
     if (profileError || preferenceError || platformError) {
-      setNotice("");
-      setError("Não foi possível concluir o onboarding. Revise os dados e tente novamente.");
-      return;
+      setNotice(""); setError("Não foi possível concluir o onboarding. Revise os dados e tente novamente."); return;
     }
-    setNotice("Contexto salvo.");
-    await loadData();
+    setNotice("Contexto salvo."); await loadData();
   }
 
+  async function saveCreatorContext(payload: ContextSavePayload) {
+    const db = supabase;
+    if (!db || !profile) return { ok: false, message: "Sua sessão não está disponível." };
+    const updatedAt = new Date().toISOString();
+    const cleanTaxonomy = normalizeTaxonomy(payload.taxonomy, payload.taxonomy.primary_niche_id);
+    const cleanContext: CreatorContext = { ...payload.context,
+      platforms: uniqueStrings(payload.context.platforms).filter((item): item is Platform => item === "instagram" || item === "tiktok"),
+      weekly_hours: Math.max(1, Math.min(80, Number(payload.context.weekly_hours) || 1)),
+    };
+    if (!cleanTaxonomy.primary_niche_id || cleanContext.platforms.length === 0) {
+      return { ok: false, message: "Defina um nicho principal e ao menos uma plataforma." };
+    }
+    const profileResult = await db.from("profiles").update({ display_name: payload.displayName.trim(), account_mode: payload.accountMode,
+      context: cleanContext, updated_at: updatedAt }).eq("user_id", profile.user_id);
+    const preferenceResult = await db.from("creator_preferences").upsert({ user_id: profile.user_id, category: "content_taxonomy",
+      niche_id: cleanTaxonomy.primary_niche_id, value: cleanTaxonomy, updated_at: updatedAt }, { onConflict: "user_id,category" });
+    const platformWrites = await Promise.all(cleanContext.platforms.map((platform) => db.from("platform_profiles").upsert({
+      user_id: profile.user_id, platform, updated_at: updatedAt,
+    }, { onConflict: "user_id,platform" })));
+    const platformDeletes = await Promise.all((["instagram", "tiktok"] as Platform[]).filter((platform) => !cleanContext.platforms.includes(platform))
+      .map((platform) => db.from("platform_profiles").delete().eq("user_id", profile.user_id).eq("platform", platform)));
+    const failed = profileResult.error || preferenceResult.error || platformWrites.some((item) => item.error) || platformDeletes.some((item) => item.error);
+    if (failed) return { ok: false, message: "Não foi possível salvar tudo. Seus campos continuam na tela para tentar novamente." };
+    setProfile((current) => current ? { ...current, display_name: payload.displayName.trim(), account_mode: payload.accountMode, context: cleanContext } : current);
+    setTaxonomy(cleanTaxonomy); setNiche(cleanTaxonomy.primary_niche_id); setPlatformProfiles(cleanContext.platforms.map((platform) => ({ platform })));
+    setNotice(""); setError("");
+    return { ok: true, message: `Contexto atualizado em ${new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(updatedAt))}.` };
+  }
   async function createIdea(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const db = supabase;
@@ -252,6 +308,7 @@ export function RitmoDashboard() {
           format: plan.format,
           niche_id: niche,
           creator_context: profile?.context ?? {},
+          content_taxonomy: taxonomy,
         } }),
       });
       if (!response.ok) throw new Error(await response.text());
@@ -499,7 +556,7 @@ export function RitmoDashboard() {
         onCreate={() => setIdeaOpen(true)} onGenerate={generateContent}/>}
       {view === "performance" && <PerformanceView plans={plans} publications={publications} onSubmit={recordPublication}/>}
       {view === "memories" && <MemoriesView memories={memories} onUpdate={updateMemory}/>}
-      {view === "context" && <ContextView profile={profile} niche={niche}/>}
+      {view === "context" && <ContextView profile={profile} taxonomy={taxonomy} platforms={platformProfiles.map((item) => item.platform)} onSave={saveCreatorContext}/>}
     </section>
 
     <button className="copilot-trigger" onClick={() => void openChat()}><Sparkles size={18}/><span>Copiloto</span></button>
@@ -608,17 +665,81 @@ function MemoriesView({ memories, onUpdate }: { memories: Memory[]; onUpdate: (m
   </div>;
 }
 
-function ContextView({ profile, niche }: { profile: Profile | null; niche: string }) {
-  const nicheName = niches.find(([id]) => id === niche)?.[1] ?? "Não definido";
-  return <div className="view-stack"><ViewHeading eyebrow="CONTEXTO AUTORIZADO" title="Seu perfil criativo" subtitle="Estas informações orientam planos e roteiros."/>
-    <section className="profile-grid"><article className="panel"><Target/><span>Modo de conta</span><strong>{profile?.account_mode ?? "Não definido"}</strong></article>
-      <article className="panel"><Lightbulb/><span>Nicho principal</span><strong>{nicheName}</strong></article>
-      <article className="panel"><Clock3/><span>Disponibilidade</span><strong>{String(profile?.context?.weekly_hours ?? "—")} h/semana</strong></article>
-      <article className="panel"><CircleUserRound/><span>Fuso horário</span><strong>{profile?.timezone ?? "—"}</strong></article></section>
-    <div className="panel privacy-note"><Check/><div><strong>Você continua no controle</strong><p>O copiloto consulta somente dados da sua conta protegidos por RLS e memórias confirmadas.</p></div></div>
+function ContextView({ profile, taxonomy, platforms, onSave }: {
+  profile: Profile | null; taxonomy: ContentTaxonomyV2; platforms: Platform[];
+  onSave: (payload: ContextSavePayload) => Promise<{ ok: boolean; message: string }>;
+}) {
+  const initialContext = normalizeCreatorContext(profile?.context, platforms);
+  const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
+  const [accountMode, setAccountMode] = useState<AccountMode>(profile?.account_mode ?? "professional");
+  const [draftTaxonomy, setDraftTaxonomy] = useState<ContentTaxonomyV2>(taxonomy);
+  const [customNicheInput, setCustomNicheInput] = useState(taxonomy.custom_niches.join(", "));
+  const [draftContext, setDraftContext] = useState<CreatorContext>(initialContext);
+  const initialSnapshot = JSON.stringify({ displayName: profile?.display_name ?? "", accountMode: profile?.account_mode ?? "professional", taxonomy, context: initialContext });
+  const [savedSnapshot, setSavedSnapshot] = useState(initialSnapshot);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveMessage, setSaveMessage] = useState("Contexto carregado. Alterações só entram no copiloto depois de salvar.");
+  const currentSnapshot = JSON.stringify({ displayName, accountMode, taxonomy: draftTaxonomy, context: draftContext });
+  const dirty = currentSnapshot !== savedSnapshot;
+  const setContextField = <K extends keyof CreatorContext>(key: K, value: CreatorContext[K]) => {
+    setDraftContext((current) => ({ ...current, [key]: value })); setSaveState("idle");
+  };
+  const toggleSecondary = (id: string) => setDraftTaxonomy((current) => ({ ...current,
+    secondary_niche_ids: current.secondary_niche_ids.includes(id) ? current.secondary_niche_ids.filter((item) => item !== id)
+      : uniqueStrings([...current.secondary_niche_ids, id]).filter((item) => item !== current.primary_niche_id),
+  }));
+  const togglePlatform = (platform: Platform) => setContextField("platforms", draftContext.platforms.includes(platform)
+    ? draftContext.platforms.filter((item) => item !== platform) : [...draftContext.platforms, platform]);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setSaveState("saving"); setSaveMessage("Salvando seu contexto autorizado…");
+    const result = await onSave({ displayName, accountMode, taxonomy: normalizeTaxonomy(draftTaxonomy, draftTaxonomy.primary_niche_id), context: draftContext });
+    if (result.ok) { setSavedSnapshot(currentSnapshot); setSaveState("success"); } else setSaveState("error");
+    setSaveMessage(result.message);
+  }
+  return <div className="view-stack"><ViewHeading eyebrow="CONTEXTO AUTORIZADO" title="Seu perfil criativo"
+    subtitle="Edite o que orienta seus próximos planos, conversas e roteiros. Conteúdos já confirmados não mudam."/>
+    <form className="context-editor" onSubmit={submit}>
+      <section><header><span>1</span><div><h3>Perfil</h3><p>Como você cria e organiza sua conta.</p></div></header>
+        <div className="field-grid"><label>Nome<input value={displayName} onChange={(event) => { setDisplayName(event.target.value); setSaveState("idle"); }} required minLength={2}/></label>
+          <label>Modo de conta<select value={accountMode} onChange={(event) => { setAccountMode(event.target.value as AccountMode); setSaveState("idle"); }}>
+            <option value="hobby">Hobby</option><option value="professional">Profissional solo</option><option value="team">Equipe / agência</option></select></label></div></section>
+      <section><header><span>2</span><div><h3>Conteúdo</h3><p>Nichos são somente os temas do conteúdo; estilo e monetização ficam livres abaixo.</p></div></header>
+        <label>Nicho principal<select value={draftTaxonomy.primary_niche_id} required onChange={(event) => { const primary = event.target.value;
+          setDraftTaxonomy((current) => ({ ...current, primary_niche_id: primary, secondary_niche_ids: current.secondary_niche_ids.filter((id) => id !== primary) })); setSaveState("idle"); }}>
+          <option value="" disabled>Selecione</option>{niches.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+        <fieldset className="niche-picker"><legend>Nichos secundários <small>opcional</small></legend><div>{niches.filter(([id]) => id !== draftTaxonomy.primary_niche_id && id !== "outros").map(([id, name]) =>
+          <label key={id} className={draftTaxonomy.secondary_niche_ids.includes(id) ? "selected" : ""}><input type="checkbox" checked={draftTaxonomy.secondary_niche_ids.includes(id)} onChange={() => { toggleSecondary(id); setSaveState("idle"); }}/><span>{name}</span></label>)}</div></fieldset>
+        <label>Outros temas personalizados<textarea value={customNicheInput} onChange={(event) => { setCustomNicheInput(event.target.value); setDraftTaxonomy((current) => ({ ...current, custom_niches: uniqueStrings(event.target.value.split(/[,\n]/)) })); setSaveState("idle"); }} placeholder="Ex.: cultura geek local, maternidade atípica (separe por vírgulas)"/></label>
+        <label>Pilares e assuntos recorrentes<textarea value={draftContext.content_pillars} onChange={(event) => setContextField("content_pillars", event.target.value)} placeholder="Quais assuntos você quer abordar com frequência?"/></label></section>
+      <section><header><span>3</span><div><h3>Público</h3><p>Quem você quer alcançar e o que essas pessoas precisam.</p></div></header>
+        <label>Descrição do público<textarea value={draftContext.audience} onChange={(event) => setContextField("audience", event.target.value)} placeholder="Idade, momento de vida, profissão ou comportamento…"/></label>
+        <div className="field-grid"><label>Necessidades<textarea value={draftContext.audience_needs} onChange={(event) => setContextField("audience_needs", event.target.value)}/></label>
+          <label>Interesses<textarea value={draftContext.audience_interests} onChange={(event) => setContextField("audience_interests", event.target.value)}/></label></div>
+        <label>Região e contexto cultural<input value={draftContext.audience_region} onChange={(event) => setContextField("audience_region", event.target.value)} placeholder="Ex.: Brasil, interior de SP, público lusófono"/></label></section>
+      <section><header><span>4</span><div><h3>Estilo</h3><p>Descreva com liberdade sua linguagem, personalidade e limites.</p></div></header>
+        <label>Como seu conteúdo deve soar<textarea value={draftContext.style} onChange={(event) => setContextField("style", event.target.value)} placeholder="Ex.: humor rápido, direto, acolhedor, sem palavrões; referências que combinam e temas que devem ser evitados."/></label></section>
+      <section><header><span>5</span><div><h3>Monetização</h3><p>Explique seu modelo atual ou desejado — inclusive se ainda não monetiza.</p></div></header>
+        <label>Como você ganha ou pretende ganhar com o conteúdo<textarea value={draftContext.monetization} onChange={(event) => setContextField("monetization", event.target.value)} placeholder="Ex.: afiliados, produtos próprios, serviços, vendas, patrocínios ou sem monetização por enquanto."/></label></section>
+      <section><header><span>6</span><div><h3>Objetivos</h3><p>Resultados esperados e sinais que mostram progresso.</p></div></header>
+        <label>Resultado esperado<textarea value={draftContext.objectives} onChange={(event) => setContextField("objectives", event.target.value)} placeholder="O que você quer conquistar com o conteúdo?"/></label>
+        <div className="field-grid"><label>CTA preferencial<input value={draftContext.preferred_cta} onChange={(event) => setContextField("preferred_cta", event.target.value)} placeholder="Ex.: comentar, salvar, comprar"/></label>
+          <label>Métricas prioritárias<input value={draftContext.priority_metrics} onChange={(event) => setContextField("priority_metrics", event.target.value)} placeholder="Ex.: vendas, alcance, salvamentos"/></label></div></section>
+      <section><header><span>7</span><div><h3>Operação</h3><p>Sua rotina, capacidade, recursos e restrições reais.</p></div></header>
+        <fieldset className="platform-picker"><legend>Plataformas <small>selecione ao menos uma</small></legend><div>{(["instagram", "tiktok"] as Platform[]).map((platform) =>
+          <label key={platform} className={draftContext.platforms.includes(platform) ? "selected" : ""}><input type="checkbox" checked={draftContext.platforms.includes(platform)} onChange={() => togglePlatform(platform)}/><span>{platform}</span></label>)}</div></fieldset>
+        <div className="field-grid"><label>Horas por semana<input type="number" min="1" max="80" value={draftContext.weekly_hours} onChange={(event) => setContextField("weekly_hours", Number(event.target.value))} required/></label>
+          <label>Frequência desejada<input value={draftContext.publishing_frequency} onChange={(event) => setContextField("publishing_frequency", event.target.value)} placeholder="Ex.: 3 vezes por semana"/></label></div>
+        <label>Como você trabalha<textarea value={draftContext.operation} onChange={(event) => setContextField("operation", event.target.value)} placeholder="Equipe, fluxo de aprovação, horários ou outras características da rotina."/></label>
+        <div className="field-grid"><label>Recursos disponíveis<textarea value={draftContext.resources} onChange={(event) => setContextField("resources", event.target.value)} placeholder="Equipamentos, pessoas, locais…"/></label>
+          <label>Restrições<textarea value={draftContext.restrictions} onChange={(event) => setContextField("restrictions", event.target.value)} placeholder="Tempo, orçamento, temas proibidos…"/></label></div></section>
+      <footer className="context-actions"><div className={`context-save-state ${saveState}`} role="status" aria-live="polite">
+        <strong>{saveState === "saving" ? "Salvando…" : dirty ? "Alterações não salvas" : saveState === "success" ? "Contexto atualizado" : saveState === "error" ? "Não foi possível salvar" : "Contexto confirmado"}</strong>
+        <span>{dirty && saveState !== "saving" ? "O copiloto ainda usa a última versão salva." : saveMessage}</span></div>
+        <button className="primary-button" disabled={!dirty || saveState === "saving"}>{saveState === "saving" ? <LoaderCircle className="spin"/> : <Check/>} Salvar contexto</button></footer>
+    </form>
+    <div className="panel privacy-note"><Check/><div><strong>Você continua no controle</strong><p>O novo contexto vale apenas para futuras conversas e gerações. Histórico e versões confirmadas permanecem imutáveis.</p></div></div>
   </div>;
 }
-
 function Onboarding({ profile, onSubmit }: { profile: Profile; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
   return <div className="modal-backdrop"><form className="product-modal onboarding-modal" onSubmit={onSubmit}>
     <span className="modal-icon"><Sparkles/></span><p className="eyebrow">SEU PRIMEIRO RITMO</p><h2>Conte um pouco sobre sua criação</h2>

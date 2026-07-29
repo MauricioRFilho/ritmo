@@ -56,6 +56,59 @@ class JobRequest(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+def _mapping(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _first(context: dict[str, Any], *keys: str, default: Any) -> Any:
+    for key in keys:
+        if key in context and context[key] is not None:
+            return context[key]
+    return default
+
+
+def _unique_strings(value: Any, excluded: set[str] | None = None) -> list[str]:
+    values = [value] if isinstance(value, str) else value
+    if not isinstance(values, list):
+        return []
+    result: list[str] = []
+    for item in values:
+        cleaned = item.strip() if isinstance(item, str) else ""
+        if cleaned and cleaned not in (excluded or set()) and cleaned not in result:
+            result.append(cleaned)
+    return result
+
+
+def normalize_creator_context(profile: dict[str, Any] | None, preferences: list[dict[str, Any]] | None, memories: list[dict[str, Any]] | None) -> dict[str, Any]:
+    """Create explicit model context; taxonomy never includes style/monetization."""
+    profile_data = _mapping(profile)
+    context = _mapping(profile_data.get("context"))
+    taxonomy = next((item for item in (preferences or []) if isinstance(item, dict) and item.get("category") == "content_taxonomy"), {})
+    value = _mapping(taxonomy.get("value"))
+    primary = value.get("primary_niche_id")
+    if not isinstance(primary, str) or not primary.strip():
+        primary = taxonomy.get("niche_id") or value.get("niche_id")
+    primary = primary.strip() if isinstance(primary, str) else None
+    raw_operation = _first(context, "operation", "operacao", default={})
+    operation = dict(raw_operation) if isinstance(raw_operation, dict) else {}
+    if isinstance(raw_operation, str) and raw_operation.strip():
+        operation["descricao"] = raw_operation.strip()
+    for key in ("weekly_hours", "frequency", "publishing_frequency", "platforms", "resources", "horas_semanais", "frequencia", "frequencia_publicacao", "plataformas", "recursos"):
+        if key in context and key not in operation:
+            operation[key] = context[key]
+    return {
+        "perfil": {"nome": profile_data.get("display_name"), "identificador": profile_data.get("handle"), "modo_conta": profile_data.get("account_mode"), "fuso_horario": profile_data.get("timezone"), "idioma": profile_data.get("locale")},
+        "nichos": {"schema_version": 2, "principal": primary, "secundarios": _unique_strings(value.get("secondary_niche_ids"), {primary} if primary else None), "personalizados": _unique_strings(value.get("custom_niches"))},
+        "publico": _first(context, "audience", "publico", default={}),
+        "estilo": _first(context, "style", "estilo", default=""),
+        "monetizacao": _first(context, "monetization", "monetizacao", default=""),
+        "objetivos": _first(context, "objectives", "objetivos", "goals", default={}),
+        "operacao": operation,
+        "restricoes": _first(context, "restrictions", "restricoes", "limits", default=[]),
+        "memorias_confirmadas": memories or [],
+    }
+
+
 async def identity(authorization: str | None = Header(None)) -> Identity:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Sessão inválida")
@@ -77,7 +130,7 @@ async def identity(authorization: str | None = Header(None)) -> Identity:
 
 async def compact_context(user_id: str) -> str:
     profile = admin.table("profiles").select(
-        "context,account_mode,timezone,locale"
+        "display_name,handle,context,account_mode,timezone,locale"
     ).eq("user_id", user_id).maybe_single().execute()
     preferences = admin.table("creator_preferences").select(
         "category,value,niche_id"
@@ -85,11 +138,7 @@ async def compact_context(user_id: str) -> str:
     memories = admin.table("creator_memories").select(
         "id,category,content,confidence,status"
     ).eq("user_id", user_id).in_("status", ["confirmed", "pinned"]).limit(20).execute()
-    return json.dumps({
-        "perfil": profile.data or {},
-        "preferencias": preferences.data or [],
-        "memorias": memories.data or [],
-    }, ensure_ascii=False)
+    return json.dumps(normalize_creator_context(profile.data, preferences.data, memories.data), ensure_ascii=False)
 
 
 async def ollama_stream(
