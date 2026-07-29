@@ -13,8 +13,8 @@ test("vertical slice persiste onboarding, ideia, versão e agendamento", async (
     'from("creator_preferences").upsert',
     'from("content_plans").insert',
     "/v1/content/generate",
-    'from("content_versions").insert',
-    'status: "scheduled"',
+    'approve_content_version',
+    'p_scheduled_for',
   ]) assert.ok(source.includes(contract), `contrato ausente: ${contract}`);
 });
 

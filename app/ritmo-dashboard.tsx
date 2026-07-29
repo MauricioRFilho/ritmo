@@ -369,6 +369,7 @@ export function RitmoDashboard() {
     if (!db || !selectedPlan || !draft || !profile) return;
     const form = new FormData(event.currentTarget);
     const scheduledFor = String(form.get("scheduled_for"));
+    const rememberPatterns = form.get("remember_patterns") === "on";
     const edited: ContentPackage = {
       ...draft,
       caption: String(form.get("caption")),
@@ -380,28 +381,19 @@ export function RitmoDashboard() {
       setError(validationError instanceof Error ? validationError.message : "Revise o roteiro antes de confirmar.");
       return;
     }
-    const { data: versions } = await db.from("content_versions").select("version").eq(
-      "content_plan_id", selectedPlan.id,
-    ).order("version", { ascending: false }).limit(1);
-    const nextVersion = (versions?.[0]?.version ?? 0) + 1;
-    const { error: versionError } = await db.from("content_versions").insert({
-      user_id: profile.user_id,
-      content_plan_id: selectedPlan.id,
-      version: nextVersion,
-      payload: edited,
+    const { data: approval, error: approvalError } = await db.rpc("approve_content_version", {
+      p_content_plan_id: selectedPlan.id,
+      p_payload: edited,
+      p_scheduled_for: new Date(scheduledFor).toISOString(),
+      p_remember_patterns: rememberPatterns,
     });
-    const { error: planError } = await db.from("content_plans").update({
-      status: "scheduled",
-      scheduled_for: new Date(scheduledFor).toISOString(),
-      payload: { ...selectedPlan.payload, confirmed_version: nextVersion },
-      updated_at: new Date().toISOString(),
-    }).eq("id", selectedPlan.id);
-    if (versionError || planError) {
+    if (approvalError) {
       setError("Não foi possível confirmar o roteiro.");
       return;
     }
+    const approved = approval as { version?: number } | null;
     setStudioOpen(false);
-    setNotice(`Roteiro v${nextVersion} confirmado e agendado.`);
+    setNotice(`Roteiro v${approved?.version ?? "nova"} confirmado e agendado.${rememberPatterns ? " Os padrões serão sugeridos em Memórias para sua aprovação." : ""}`);
     await loadData();
   }
 
@@ -807,6 +799,7 @@ function StudioDialog({ plan, draft, status, onClose, onSubmit }: {
         {(draft.capture_notes.length > 0 || draft.editing_notes.length > 0) && <section className="draft-section"><span>COMO GRAVAR E EDITAR</span>{draft.capture_notes.map((note) => <p key={"capture-" + note}>Captação: {note}</p>)}{draft.editing_notes.map((note) => <p key={"editing-" + note}>Edição: {note}</p>)}</section>}
         <label>Legenda<textarea name="caption" required defaultValue={draft.caption}/></label><label>CTA<input name="cta" required defaultValue={draft.cta}/></label>
         <label>Agendar para<input name="scheduled_for" type="datetime-local" required min={new Date().toISOString().slice(0, 16)}/></label>
+        <label className="remember-pattern"><input name="remember_patterns" type="checkbox" defaultChecked/><span><strong>Aprender com este criativo</strong>Após confirmar, o Ritmo sugere padrões reutilizáveis em Memórias. Você decide o que aceitar.</span></label>
         <div className="human-confirmation"><Check/><span>Ao confirmar, você cria uma versão imutável e aprova o agendamento.</span></div>
         <button className="primary-button full">Confirmar versão e agendar</button></>}
   </form></div>;

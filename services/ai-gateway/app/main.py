@@ -251,10 +251,18 @@ async def enqueue(
     if (recent.count or 0) >= settings.hourly_job_limit:
         raise HTTPException(429, "Cota horária de IA atingida. Tente novamente mais tarde.")
     key = idempotency_key or f"{kind}:{user.user_id}:{time.time_ns()}"
+    payload = dict(request.payload)
+    if kind in {"content.generate", "content.revise", "plan.generate", "plan.revise"}:
+        approved = admin.table("creator_memories").select(
+            "id,category,content"
+        ).eq("user_id", user.user_id).in_(
+            "status", ["confirmed", "pinned"]
+        ).order("updated_at", desc=True).limit(12).execute()
+        payload["approved_creator_memories"] = approved.data or []
     record = {
         "user_id": user.user_id,
         "kind": kind,
-        "payload": request.payload,
+        "payload": payload,
         "idempotency_key": key,
         "status": "queued",
     }
