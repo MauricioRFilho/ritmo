@@ -43,7 +43,25 @@ docker compose exec ollama ollama pull qwen3:8b
 docker compose exec ollama ollama pull qwen3:4b
 ```
 
-Defina `ENV_FILE` para o arquivo seguro do ambiente. Não use `.env.example`.
+Defina `ENV_FILE` para o arquivo seguro do ambiente. Passar apenas
+`docker compose --env-file ...` não altera o `env_file` dos serviços, pois essa
+opção alimenta a interpolação do Compose. Exemplo:
+
+```bash
+ENV_FILE=.env.staging docker compose --env-file .env.staging \
+  -f docker-compose.yml -f docker-compose.production.yml up -d --build
+```
+
+Depois de alterar uma variável, recrie o serviço afetado; `restart` não recarrega
+o ambiente:
+
+```bash
+ENV_FILE=.env.staging docker compose --env-file .env.staging \
+  -f docker-compose.yml -f docker-compose.production.yml \
+  up -d --force-recreate --no-deps gateway
+```
+
+Não use `.env.example` fora do desenvolvimento.
 
 ## Smoke operacional
 
