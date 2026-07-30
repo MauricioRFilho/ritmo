@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal, Union
 import unicodedata
 
-from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
+from pydantic import BaseModel, Field, RootModel, ValidationInfo, field_validator, model_validator
 
 
 _PLACEHOLDERS = {
@@ -37,6 +37,8 @@ class ContentScene(BaseModel):
 
 
 class ContentPackage(BaseModel):
+    creative_type: Literal["advertising_image", "instagram_carousel", "short_video", "tech_educational_video", "ugc_ad", "story_sequence", "live_stream", "newsletter"] | None = None
+    template_provenance: dict | None = None
     objective: str = Field(min_length=8, max_length=500)
     hooks: list[str] = Field(min_length=3, max_length=3)
     scenes: list[ContentScene] = Field(min_length=2, max_length=8)
@@ -82,6 +84,115 @@ class ContentPackage(BaseModel):
         return self
 
 
+class ProvenancedCreative(BaseModel):
+    template_provenance: dict | None = None
+    objective: str = Field(min_length=8, max_length=500)
+    cta: str = Field(min_length=8, max_length=300)
+
+
+class AdvertisingImagePackage(ProvenancedCreative):
+    creative_type: Literal["advertising_image"]
+    headline: str = Field(min_length=8, max_length=120)
+    visual_direction: str = Field(min_length=12, max_length=1000)
+    overlay_text: str = Field(min_length=3, max_length=160)
+    caption: str = Field(min_length=8, max_length=2200)
+
+
+class CarouselSlide(BaseModel):
+    order: int = Field(ge=1, le=10)
+    text: str = Field(min_length=8, max_length=500)
+    visual: str = Field(min_length=8, max_length=500)
+    alt_text: str = Field(min_length=8, max_length=500)
+
+
+class InstagramCarouselPackage(ProvenancedCreative):
+    creative_type: Literal["instagram_carousel"]
+    cover_hook: str = Field(min_length=8, max_length=160)
+    slides: list[CarouselSlide] = Field(min_length=3, max_length=10)
+    caption: str = Field(min_length=8, max_length=2200)
+
+
+class ShortVideoPackage(ContentPackage):
+    creative_type: Literal["short_video"]
+
+
+class TechnicalStep(BaseModel):
+    order: int = Field(ge=1, le=12)
+    instruction: str = Field(min_length=8, max_length=500)
+    demonstration: str = Field(min_length=8, max_length=500)
+    verification: str = Field(min_length=8, max_length=500)
+
+
+class TechEducationalVideoPackage(ProvenancedCreative):
+    creative_type: Literal["tech_educational_video"]
+    hook: str = Field(min_length=8, max_length=200)
+    prerequisites: list[str] = Field(default_factory=list, max_length=10)
+    steps: list[TechnicalStep] = Field(min_length=1, max_length=12)
+    limitations: list[str] = Field(default_factory=list, max_length=10)
+    caption: str = Field(min_length=8, max_length=2200)
+
+
+class UgcAdPackage(ProvenancedCreative):
+    creative_type: Literal["ugc_ad"]
+    personal_hook: str = Field(min_length=8, max_length=200)
+    relatable_problem: str = Field(min_length=8, max_length=500)
+    product_demo: str = Field(min_length=8, max_length=800)
+    proof: str = Field(min_length=8, max_length=800)
+    qualification: str = Field(min_length=8, max_length=500)
+    disclosure: str = Field(min_length=3, max_length=300)
+    caption: str = Field(min_length=8, max_length=2200)
+
+
+class StoryFrame(BaseModel):
+    order: int = Field(ge=1, le=10)
+    visual: str = Field(min_length=8, max_length=500)
+    text: str = Field(min_length=3, max_length=300)
+    duration_seconds: int = Field(ge=2, le=15)
+    interaction: str | None = Field(default=None, max_length=200)
+
+
+class StorySequencePackage(ProvenancedCreative):
+    creative_type: Literal["story_sequence"]
+    frames: list[StoryFrame] = Field(min_length=2, max_length=10)
+    caption: str = Field(min_length=8, max_length=2200)
+
+
+class LiveSegment(BaseModel):
+    title: str = Field(min_length=3, max_length=160)
+    talking_points: list[str] = Field(min_length=1, max_length=12)
+    duration_minutes: int = Field(ge=1, le=120)
+
+
+class LiveStreamPackage(ProvenancedCreative):
+    creative_type: Literal["live_stream"]
+    opening: str = Field(min_length=8, max_length=1000)
+    agenda: list[str] = Field(min_length=1, max_length=12)
+    segments: list[LiveSegment] = Field(min_length=1, max_length=12)
+    moderation_plan: str = Field(min_length=8, max_length=1000)
+    contingency_plan: str = Field(min_length=8, max_length=1000)
+
+
+class NewsletterSection(BaseModel):
+    heading: str = Field(min_length=3, max_length=160)
+    body: str = Field(min_length=8, max_length=4000)
+
+
+class NewsletterPackage(ProvenancedCreative):
+    creative_type: Literal["newsletter"]
+    subject: str = Field(min_length=8, max_length=160)
+    preheader: str = Field(min_length=8, max_length=200)
+    opening: str = Field(min_length=8, max_length=1000)
+    sections: list[NewsletterSection] = Field(min_length=1, max_length=12)
+
+
+class AdaptedContentPackage(RootModel[Annotated[Union[
+    AdvertisingImagePackage, InstagramCarouselPackage, ShortVideoPackage,
+    TechEducationalVideoPackage, UgcAdPackage, StorySequencePackage,
+    LiveStreamPackage, NewsletterPackage,
+], Field(discriminator="creative_type")]]):
+    pass
+
+
 class PlanItem(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     platform: Literal["instagram", "tiktok"]
@@ -122,6 +233,7 @@ RESULT_MODELS = {
     "plan.revise": WeeklyPlanResult,
     "content.generate": ContentPackage,
     "content.revise": ContentPackage,
+    "content.adapt": AdaptedContentPackage,
     "memories.extract": MemoryExtractionResult,
     "conversations.summarize": ConversationSummaryResult,
     "trends.research": TrendInterpretationResult,
@@ -133,7 +245,13 @@ def validate_result(kind: str, value: object, payload: dict | None = None) -> di
     if model is None:
         raise ValueError(f"Unsupported job kind: {kind}")
     context = {"format": (payload or {}).get("format", "short-video")}
-    return model.model_validate(value, context=context).model_dump(mode="json")
+    result = model.model_validate(value, context=context).model_dump(mode="json")
+    if kind in {"content.generate", "content.revise", "content.adapt"} and payload:
+        if payload.get("creative_type"):
+            result["creative_type"] = payload["creative_type"]
+        if payload.get("template_provenance"):
+            result["template_provenance"] = payload["template_provenance"]
+    return result
 
 
 def json_schema_for(kind: str) -> dict:

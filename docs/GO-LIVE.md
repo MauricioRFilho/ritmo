@@ -7,10 +7,10 @@ Status em 30/07/2026: **staging técnico operacional; Go Live público bloqueado
 | Gate | Estado | Evidência ou bloqueio |
 |---|---|---|
 | API pública de staging | Aprovado | health e docs `200`; CORS aceita a origem atual do Sites |
-| RLS e banco local | Aprovado | reset incremental e 33 pgTAP, incluindo aprovação criativa funcional |
+| RLS e banco local | Aprovado | migrations incrementais e 81 pgTAP, incluindo Biblioteca, idempotência e flags server-side |
 | Aprovação de conteúdo | Aprovado localmente | validação server-side, limite de payload, isolamento e idempotência |
-| Catálogo criativo | Aprovado localmente | 8 modelos JSON passam no validador; consumo especializado em runtime ainda é evolução futura |
-| Build e código | Aprovado localmente | build, 33 Node e 21 Python passam; houve flakiness transitória de arquivos no Vinext/Vite no Windows |
+| Biblioteca pública | Aprovado localmente, flags desligadas | 24 templates; blog/SEO, moderação, RLS, idempotência e adaptação validados; E2E de staging pendente |
+| Build e código | Aprovado localmente | build de produção, 42 Node e 37 Python passam; artefato validado sem recursos locais |
 | Hardening da API | Aprovado localmente | docs fechadas em produção, headers defensivos e rate limit Nginx versionados; aplicação remota pendente |
 | Jornada autenticada atual | Bloqueado | falta E2E visual completo após as mudanças de 29–30/07 |
 | CI remoto | Bloqueado | branch atual ainda não integrada à `main`; check remoto e branch protection sem evidência |
@@ -26,14 +26,15 @@ Status em 30/07/2026: **staging técnico operacional; Go Live público bloqueado
 
 - `npm run lint`: passou;
 - `npm run build`: passou;
-- Node: 33/33;
-- Python: 21/21;
-- banco/RLS: 33/33 pgTAP após reset local;
-- biblioteca criativa: 8 modelos válidos;
+- Node: 42/42;
+- Python: 37/37;
+- banco/RLS: 81/81 pgTAP após migrations locais;
+- biblioteca criativa: 24 modelos válidos;
+- biblioteca pública: 42 Node, 37 Python e 81 pgTAP aprovados; npm audit sem vulnerabilidades;
 - API de staging: `/v1/health` e `/docs` responderam `200` em 30/07/2026;
 - CORS: preflight autenticado aceitou a origem `ritmo-criador.mauricio-srfh.chatgpt.site`.
 
-Total de verificações automatizadas contabilizadas: **87** (33 Node + 21 Python + 33 pgTAP), além do validador dos 8 modelos.
+Gate atual da Biblioteca: **160 testes** (42 Node + 37 Python + 81 pgTAP), além do validador dos 24 modelos.
 
 ## Decisões vigentes
 

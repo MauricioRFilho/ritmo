@@ -1,13 +1,15 @@
 "use client";
 
 import {
-  BarChart3, CalendarDays, Check, ChevronRight, CircleUserRound,
+  BarChart3, BookOpen, CalendarDays, Check, ChevronRight, CircleUserRound,
   FileText, Home, Lightbulb, LoaderCircle, LogOut, Menu, Plus, RefreshCw,
   Send, Sparkles, Video, X,
 } from "lucide-react";
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { hasSupabaseConfig, supabase } from "../lib/supabase-browser";
 import "./product.css";
+import { CommunityShareDialog } from "./community-share-dialog";
 
 type Platform = "instagram" | "tiktok";
 type AccountMode = "hobby" | "professional" | "team";
@@ -164,6 +166,7 @@ export function RitmoDashboard() {
   const [ideaOpen, setIdeaOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<ContentPlan | null>(null);
+  const [sharePlan, setSharePlan] = useState<ContentPlan | null>(null);
   const [draft, setDraft] = useState<ContentPackage | null>(null);
   const [jobStatus, setJobStatus] = useState("");
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
@@ -551,6 +554,8 @@ export function RitmoDashboard() {
           {id === "memories" && memories.filter((item) => item.status === "suggested").length > 0 &&
             <small>{memories.filter((item) => item.status === "suggested").length}</small>}
         </button>)}
+        <Link className="library-nav-link" href="/blog"><BookOpen size={18}/><span>Biblioteca</span></Link>
+        <Link className="library-nav-link" href="/biblioteca"><FileText size={18}/><span>Minha biblioteca</span></Link>
       </nav>
       <div className="sidebar-account">
         <div className="avatar">{profile?.display_name?.slice(0, 2).toUpperCase() ?? "RC"}</div>
@@ -579,7 +584,7 @@ export function RitmoDashboard() {
         onCreate={() => setIdeaOpen(true)} onGenerate={generateContent}/>}
       {view === "calendar" && <CalendarView groups={monthGroups} onSelect={(plan) => { setSelectedPlan(plan); setView("content"); }}/>}
       {view === "content" && <ContentView plans={plans} selected={selectedPlan} onSelect={setSelectedPlan}
-        onCreate={() => setIdeaOpen(true)} onGenerate={generateContent}/>}
+        onCreate={() => setIdeaOpen(true)} onGenerate={generateContent} onShare={setSharePlan}/>}
       {view === "performance" && <PerformanceView plans={plans} publications={publications} onSubmit={recordPublication}/>}
       {view === "memories" && <MemoriesView memories={memories} onUpdate={updateMemory}/>}
       {view === "context" && <ContextView profile={profile} taxonomy={taxonomy} platforms={platformProfiles.map((item) => item.platform)} onSave={saveCreatorContext}/>}
@@ -601,6 +606,7 @@ export function RitmoDashboard() {
 
     {!profile?.onboarding_completed && profile && <Onboarding profile={profile} onSubmit={saveOnboarding}/>}
     {ideaOpen && <IdeaDialog onClose={() => setIdeaOpen(false)} onSubmit={createIdea}/>}
+    {sharePlan && <CommunityShareDialog source={sharePlan} onClose={() => setSharePlan(null)} onSubmitted={setNotice}/>}
     {studioOpen && selectedPlan && <StudioDialog plan={selectedPlan} draft={draft} status={jobStatus}
       submitting={approvalSubmitting} onClose={() => setStudioOpen(false)} onSubmit={confirmContent}/>}
   </main>;
@@ -642,9 +648,9 @@ function CalendarView({ groups, onSelect }: { groups: Map<string, ContentPlan[]>
   </div>;
 }
 
-function ContentView({ plans, selected, onSelect, onCreate, onGenerate }: {
+function ContentView({ plans, selected, onSelect, onCreate, onGenerate, onShare }: {
   plans: ContentPlan[]; selected: ContentPlan | null; onSelect: (plan: ContentPlan) => void;
-  onCreate: () => void; onGenerate: (plan: ContentPlan) => void;
+  onCreate: () => void; onGenerate: (plan: ContentPlan) => void; onShare: (plan: ContentPlan) => void;
 }) {
   return <div className="view-stack"><ViewHeading eyebrow="ESTÚDIO" title="Conteúdos" subtitle="Ideias, roteiros revisados e publicações no mesmo fluxo."
     action={<button className="primary-button" onClick={onCreate}><Plus size={15}/> Nova ideia</button>}/>
@@ -658,7 +664,7 @@ function ContentView({ plans, selected, onSelect, onCreate, onGenerate }: {
           <div><dt>Formato</dt><dd>{selected.format || "A definir"}</dd></div><div><dt>Agendamento</dt><dd>{formatDate(selected.scheduled_for)}</dd></div></dl>
         {selected.status === "idea" && <button className="primary-button full" onClick={() => onGenerate(selected)}><Sparkles size={16}/> Gerar roteiro com IA</button>}
         {selected.status === "generating" && <button className="secondary-button full" disabled><LoaderCircle className="spin" size={16}/> Geração em andamento</button>}
-        {["review", "scheduled", "ready"].includes(selected.status) && <div className="confirmed-note"><Check size={17}/><span>Este conteúdo já passou pela geração. Abra novamente pelo histórico de versões na próxima iteração.</span></div>}
+        {["review", "scheduled", "ready"].includes(selected.status) && <><div className="confirmed-note"><Check size={17}/><span>Este conteúdo já passou pela geração. Abra novamente pelo histórico de versões na próxima iteração.</span></div><button className="secondary-button full" onClick={() => onShare(selected)}><BookOpen size={16}/> Compartilhar na biblioteca</button></>}
       </> : <EmptyState title="Selecione um conteúdo" text="Veja detalhes e avance para a próxima etapa."/>}</div>
     </section>
   </div>;

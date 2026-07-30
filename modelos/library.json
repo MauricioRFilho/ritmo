@@ -50,7 +50,23 @@
       "id": "service-offer-carousel-v1",
       "creative_type": "instagram_carousel",
       "source": "service_offer_carousel.json"
-    }
+    },
+    {"id":"product-hero-image-v1","creative_type":"advertising_image","source":"product-hero-image.json","status":"approved"},
+    {"id":"event-promo-image-v1","creative_type":"advertising_image","source":"event-promo-image.json","status":"approved"},
+    {"id":"myth-fact-carousel-v1","creative_type":"instagram_carousel","source":"myth-fact-carousel.json","status":"approved"},
+    {"id":"before-after-process-video-v1","creative_type":"short_video","source":"before-after-process-video.json","status":"approved"},
+    {"id":"tech-troubleshooting-video-v1","creative_type":"tech_educational_video","source":"tech-troubleshooting-video.json","status":"approved"},
+    {"id":"tech-concept-video-v1","creative_type":"tech_educational_video","source":"tech-concept-video.json","status":"approved"},
+    {"id":"ugc-objection-demo-v1","creative_type":"ugc_ad","source":"ugc-objection-demo.json","status":"approved"},
+    {"id":"story-poll-sequence-v1","creative_type":"story_sequence","source":"story-poll-sequence.json","status":"approved"},
+    {"id":"story-launch-sequence-v1","creative_type":"story_sequence","source":"story-launch-sequence.json","status":"approved"},
+    {"id":"story-behind-scenes-v1","creative_type":"story_sequence","source":"story-behind-scenes.json","status":"approved"},
+    {"id":"live-qa-v1","creative_type":"live_stream","source":"live-qa.json","status":"approved"},
+    {"id":"live-workshop-v1","creative_type":"live_stream","source":"live-workshop.json","status":"approved"},
+    {"id":"live-product-demo-v1","creative_type":"live_stream","source":"live-product-demo.json","status":"approved"},
+    {"id":"newsletter-curation-v1","creative_type":"newsletter","source":"newsletter-curation.json","status":"approved"},
+    {"id":"newsletter-educational-v1","creative_type":"newsletter","source":"newsletter-educational.json","status":"approved"},
+    {"id":"newsletter-offer-v1","creative_type":"newsletter","source":"newsletter-offer.json","status":"approved"}
   ]
 }
 

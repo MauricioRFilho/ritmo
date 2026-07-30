@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const modelsDir = resolve(root, "modelos");
 const library = JSON.parse(await readFile(resolve(modelsDir, "library.json"), "utf8"));
-const allowedTypes = new Set(["advertising_image", "instagram_carousel", "short_video", "tech_educational_video", "ugc_ad"]);
+const allowedTypes = new Set(["advertising_image", "instagram_carousel", "short_video", "tech_educational_video", "ugc_ad", "story_sequence", "live_stream", "newsletter"]);
 const ids = new Set();
 const sources = new Set();
 const errors = [];
@@ -18,6 +18,7 @@ const collectScenes = (model) => model.creative?.scenes ?? model.creative?.produ
 
 if (library.schema_version !== 1) errors.push("library.json: schema_version deve ser 1");
 if (!Array.isArray(library.templates) || library.templates.length === 0) errors.push("library.json: templates vazio");
+if ((library.templates?.length ?? 0) < 24) errors.push("library.json: catálogo oficial deve conter pelo menos 24 templates");
 if (!library.approval_policy || library.approval_policy.memory_status !== "suggested") errors.push("library.json: memória precisa nascer como suggested");
 if (!Array.isArray(library.approval_policy?.performance_status) || !library.approval_policy.performance_status.includes("performance_validated")) {
   errors.push("library.json: separar performance_validated de medição");
@@ -33,6 +34,7 @@ for (const entry of library.templates ?? []) {
   if (sources.has(entry.source)) errors.push(`source duplicado: ${entry.source}`);
   ids.add(entry.id); sources.add(entry.source);
   if (!allowedTypes.has(entry.creative_type)) errors.push(`${entry.id}: creative_type inválido`);
+  if (entry.status && entry.status !== "approved") errors.push(`${entry.id}: template oficial precisa estar aprovado`);
   const sourcePath = resolve(modelsDir, entry.source ?? "");
   try { await access(sourcePath); } catch { errors.push(`${entry.id}: arquivo ausente ${entry.source}`); continue; }
   let model;
@@ -71,6 +73,10 @@ for (const entry of library.templates ?? []) {
       if (slides.some((slide) => !slide.alt_text)) errors.push(`${entry.id}: todo slide precisa de alt_text`);
     }
   }
+}
+
+for (const type of allowedTypes) {
+  if (!(library.templates ?? []).some((entry) => entry.creative_type === type)) errors.push(`catálogo sem cobertura para ${type}`);
 }
 
 if (errors.length) {

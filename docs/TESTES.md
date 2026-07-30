@@ -89,3 +89,11 @@ desse usuário.
 ## Gate de retomada — 30/07/2026
 
 Estado atual: 33 testes Node, 21 Python e 33 pgTAP (87 verificações), além de 8 modelos criativos validados. Evidência: `docs/evidencias/2026-07-30-retomada-go-live.md`. Contagens anteriores permanecem como histórico das respectivas datas.
+
+## 2026-07-30 — Biblioteca pública e comunidade
+
+- Build de produção, lint, 42 Node, 37 Python e 81 pgTAP aprovados.
+- 24 templates oficiais validados; dependências de produção com 0 vulnerabilidades conhecidas.
+- Cobertura: rollout fail-closed, catálogo, SEO, moderação, RLS, idempotência, schemas discriminados, adaptação e proveniência.
+- Evidência: `docs/evidencias/2026-07-30-biblioteca-publica.md`.
+- Pendente: E2E autenticado visual, carga, restore/rollback e gates externos antes de produção.

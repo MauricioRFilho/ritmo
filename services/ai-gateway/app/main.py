@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from typing import Any
+from uuid import UUID
 
 import httpx
 import jwt
@@ -12,6 +13,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from supabase import Client, create_client
+
+from app.creative_templates import TemplateSelection, approved_template_summary, require_template_reference, sync_official_templates
+from app.supabase_rpc import start_template_adaptation
 
 from app.observability import configure_api_logging, configure_security_headers
 
@@ -51,6 +55,11 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+async def sync_bundled_creative_templates() -> None:
+    sync_official_templates(admin)
+
+
 class Identity(BaseModel):
     user_id: str
     token: str
@@ -63,6 +72,12 @@ class ChatRequest(BaseModel):
 
 
 class JobRequest(BaseModel):
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class AdaptRequest(TemplateSelection):
+    template_id: UUID
+    community_post_id: UUID | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -262,6 +277,27 @@ async def enqueue(
         raise HTTPException(429, "Cota horária de IA atingida. Tente novamente mais tarde.")
     key = idempotency_key or f"{kind}:{user.user_id}:{time.time_ns()}"
     payload = dict(request.payload)
+    template_id = payload.get("template_id")
+    if kind in {"content.generate", "content.revise", "content.adapt"} and template_id:
+        try:
+            template_id, template_version = require_template_reference(payload)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        catalog = admin.table("creative_template_catalog").select(
+            "id,template_key,version,origin,community_post_id,creative_type,template_json"
+        ).eq("id", template_id).eq("version", template_version).eq("editorial_status", "approved").eq(
+            "active", True
+        ).limit(1).maybe_single().execute()
+        if not catalog.data:
+            raise HTTPException(404, "Modelo criativo aprovado não encontrado")
+        payload["approved_template"] = catalog.data["template_json"]
+        payload["creative_type"] = catalog.data["creative_type"]
+        payload["template_provenance"] = {
+            "template_id": catalog.data["id"], "template_key": catalog.data["template_key"],
+            "template_version": catalog.data["version"], "origin": catalog.data["origin"],
+            "community_post_id": catalog.data["community_post_id"],
+            "adaptation_policy": "structure_only_no_literal_copy",
+        }
     if kind in {"content.generate", "content.revise", "plan.generate", "plan.revise"}:
         approved = admin.table("creator_memories").select(
             "id,category,content"
@@ -305,6 +341,46 @@ job_endpoint("/v1/content/revise", "content.revise")
 job_endpoint("/v1/trends/research", "trends.research")
 job_endpoint("/v1/memories/extract", "memories.extract")
 job_endpoint("/v1/conversations/summarize", "conversations.summarize")
+
+
+@app.get("/v1/creative-templates")
+async def creative_templates(_: Identity = Depends(identity)):
+    result = admin.table("public_template_catalog").select(
+        "id,template_key,version,origin,community_post_id,creative_type,title,objective"
+    ).execute()
+    return {"templates": result.data or [], "bundled_count": len(approved_template_summary())}
+
+
+@app.post("/v1/content/adapt")
+async def adapt_content(
+    request: AdaptRequest,
+    user: Identity = Depends(identity),
+    idempotency_key: str | None = Header(None),
+):
+    if not idempotency_key or not 8 <= len(idempotency_key) <= 200:
+        raise HTTPException(422, "Idempotency-Key obrigatório com 8 a 200 caracteres")
+    payload = {**request.payload, "template_id": str(request.template_id), "template_version": request.template_version, "adaptation_brief": request.adaptation_brief}
+    catalog = admin.table("public_template_catalog").select("id,version").eq(
+        "id", str(request.template_id)
+    ).eq("version", request.template_version).maybe_single().execute()
+    if not catalog.data:
+        raise HTTPException(404, "Modelo criativo aprovado nesta versão não encontrado")
+    adaptation = await start_template_adaptation(
+        supabase_url=settings.supabase_url,
+        publishable_key=settings.supabase_publishable_key,
+        user_token=user.token,
+        community_post_id=str(request.community_post_id) if request.community_post_id else None,
+        template_id=str(request.template_id),
+        template_version=request.template_version,
+        adaptation_brief=request.adaptation_brief,
+        idempotency_key=idempotency_key,
+    )
+    job = admin.table("ai_jobs").select("*").eq("id", adaptation["ai_job_id"]).eq(
+        "user_id", user.user_id
+    ).eq("kind", "content.adapt").single().execute()
+    if not isinstance(job.data.get("payload", {}).get("authorized_creator_context"), dict):
+        raise HTTPException(500, "Contexto autorizado ausente do job de adaptação")
+    return {"job": job.data, "adaptation": adaptation}
 
 
 @app.get("/v1/jobs/{job_id}")
