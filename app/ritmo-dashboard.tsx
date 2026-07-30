@@ -5,7 +5,7 @@ import {
   FileText, Home, Lightbulb, LoaderCircle, LogOut, Menu, Plus, RefreshCw,
   Send, Sparkles, Video, X,
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { hasSupabaseConfig, supabase } from "../lib/supabase-browser";
 import "./product.css";
 
@@ -166,6 +166,8 @@ export function RitmoDashboard() {
   const [selectedPlan, setSelectedPlan] = useState<ContentPlan | null>(null);
   const [draft, setDraft] = useState<ContentPackage | null>(null);
   const [jobStatus, setJobStatus] = useState("");
+  const [approvalSubmitting, setApprovalSubmitting] = useState(false);
+  const approvalKey = useRef("");
   const [chatOpen, setChatOpen] = useState(false);
   const [conversationId, setConversationId] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -313,6 +315,7 @@ export function RitmoDashboard() {
     setSelectedPlan(plan);
     setStudioOpen(true);
     setDraft(null);
+    approvalKey.current = crypto.randomUUID();
     setJobStatus("Enviando para o estúdio...");
     await db.from("content_plans").update({ status: "generating" }).eq("id", plan.id);
     try {
@@ -365,6 +368,7 @@ export function RitmoDashboard() {
 
   async function confirmContent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (approvalSubmitting) return;
     const db = supabase;
     if (!db || !selectedPlan || !draft || !profile) return;
     const form = new FormData(event.currentTarget);
@@ -381,20 +385,20 @@ export function RitmoDashboard() {
       setError(validationError instanceof Error ? validationError.message : "Revise o roteiro antes de confirmar.");
       return;
     }
-    const { data: approval, error: approvalError } = await db.rpc("approve_content_version", {
-      p_content_plan_id: selectedPlan.id,
-      p_payload: edited,
-      p_scheduled_for: new Date(scheduledFor).toISOString(),
-      p_remember_patterns: rememberPatterns,
-    });
-    if (approvalError) {
-      setError("Não foi possível confirmar o roteiro.");
-      return;
-    }
-    const approved = approval as { version?: number } | null;
-    setStudioOpen(false);
-    setNotice(`Roteiro v${approved?.version ?? "nova"} confirmado e agendado.${rememberPatterns ? " Os padrões serão sugeridos em Memórias para sua aprovação." : ""}`);
-    await loadData();
+    setApprovalSubmitting(true); setError("");
+    try {
+      if (!approvalKey.current) approvalKey.current = crypto.randomUUID();
+      const { data: approval, error: approvalError } = await db.rpc("approve_content_version", {
+        p_content_plan_id: selectedPlan.id, p_payload: edited,
+        p_scheduled_for: new Date(scheduledFor).toISOString(),
+        p_remember_patterns: rememberPatterns, p_idempotency_key: approvalKey.current,
+      });
+      if (approvalError) { setError("Não foi possível confirmar o roteiro."); return; }
+      const approved = approval as { version?: number } | null;
+      setStudioOpen(false); approvalKey.current = "";
+      setNotice(`Roteiro v${approved?.version ?? "nova"} confirmado e agendado.${rememberPatterns ? " Os padrões serão sugeridos em Memórias para sua aprovação." : ""}`);
+      await loadData();
+    } finally { setApprovalSubmitting(false); }
   }
 
   async function openChat() {
@@ -598,7 +602,7 @@ export function RitmoDashboard() {
     {!profile?.onboarding_completed && profile && <Onboarding profile={profile} onSubmit={saveOnboarding}/>}
     {ideaOpen && <IdeaDialog onClose={() => setIdeaOpen(false)} onSubmit={createIdea}/>}
     {studioOpen && selectedPlan && <StudioDialog plan={selectedPlan} draft={draft} status={jobStatus}
-      onClose={() => setStudioOpen(false)} onSubmit={confirmContent}/>}
+      submitting={approvalSubmitting} onClose={() => setStudioOpen(false)} onSubmit={confirmContent}/>}
   </main>;
 }
 
@@ -785,8 +789,8 @@ function IdeaDialog({ onClose, onSubmit }: { onClose: () => void; onSubmit: (eve
     <button className="primary-button full">Salvar ideia</button></form></div>;
 }
 
-function StudioDialog({ plan, draft, status, onClose, onSubmit }: {
-  plan: ContentPlan; draft: ContentPackage | null; status: string; onClose: () => void;
+function StudioDialog({ plan, draft, status, submitting, onClose, onSubmit }: {
+  plan: ContentPlan; draft: ContentPackage | null; status: string; submitting: boolean; onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   const totalDuration = draft?.scenes.reduce((total, scene) => total + scene.duration_seconds, 0) ?? 0;
@@ -801,7 +805,7 @@ function StudioDialog({ plan, draft, status, onClose, onSubmit }: {
         <label>Agendar para<input name="scheduled_for" type="datetime-local" required min={new Date().toISOString().slice(0, 16)}/></label>
         <label className="remember-pattern"><input name="remember_patterns" type="checkbox" defaultChecked/><span><strong>Aprender com este criativo</strong>Após confirmar, o Ritmo sugere padrões reutilizáveis em Memórias. Você decide o que aceitar.</span></label>
         <div className="human-confirmation"><Check/><span>Ao confirmar, você cria uma versão imutável e aprova o agendamento.</span></div>
-        <button className="primary-button full">Confirmar versão e agendar</button></>}
+        <button className="primary-button full" disabled={submitting}>{submitting ? <><LoaderCircle className="spin"/> Confirmando…</> : "Confirmar versão e agendar"}</button></>}
   </form></div>;
 }
 

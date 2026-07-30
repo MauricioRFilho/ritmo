@@ -85,3 +85,7 @@ desse usuário.
 - Cobertura adicionada: legado/v2, deduplicação de nichos, editor com estados de salvamento, separação de estilo/monetização e guardrails de tipografia/copiloto.
 - Evidência: `docs/evidencias/2026-07-29-contexto-v2.md`.
 - Risco residual: navegador conectado indisponível; smoke visual manual pós-deploy.
+
+## Gate de retomada — 30/07/2026
+
+Estado atual: 33 testes Node, 21 Python e 33 pgTAP (87 verificações), além de 8 modelos criativos validados. Evidência: `docs/evidencias/2026-07-30-retomada-go-live.md`. Contagens anteriores permanecem como histórico das respectivas datas.
