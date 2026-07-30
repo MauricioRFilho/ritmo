@@ -25,3 +25,13 @@ test("renderiza a entrada e o cadastro", async () => {
   assert.match(html, /protegidos na sua conta Ritmo/);
   assert.doesNotMatch(html, /Continuar com Google/);
 });
+test("falha fechado sem configuração do Supabase", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) =>
+    readFile(new URL("../lib/supabase-proxy.ts", import.meta.url), "utf8"));
+  const configCheck = source.indexOf("if (!url || !key)");
+  const protectedCheck = source.indexOf("if (isProtected(pathname))", configCheck);
+  const permissiveReturn = source.indexOf("return NextResponse.next({ request })", configCheck);
+  assert.ok(configCheck >= 0);
+  assert.ok(protectedCheck > configCheck);
+  assert.ok(permissiveReturn > protectedCheck);
+});
