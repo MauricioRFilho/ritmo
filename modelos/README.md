@@ -28,8 +28,7 @@ não textos para copiar e não garantem desempenho.
 só pode ser usado após resultados reais de publicação; nenhum seed é tratado como
 prova de desempenho.
 
-A persistência em memória e o uso automático destes modelos pelo gateway são uma
-etapa futura e não fazem parte deste pacote de governança do catálogo.
+Após o merge, o gateway sincroniza os modelos oficiais de forma idempotente no catálogo runtime do Supabase. A mesma chave e versão são imutáveis: JSON divergente bloqueia a sincronização. Adaptações carregam o modelo aprovado no servidor, preservam proveniência e exigem revisão humana; memória confirmada permanece separada do catálogo.
 ## Rotina diária com aprovação humana
 
 1. A IA cria ou ajusta um arquivo JSON e atualiza `library.json`.

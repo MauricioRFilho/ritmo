@@ -44,6 +44,39 @@ class SchemaTests(unittest.TestCase):
         ]:
             self.assertEqual(json_schema_for(kind)["type"], "object")
 
+    def test_adaptation_schema_discriminates_all_creative_types(self):
+        schema = json.dumps(json_schema_for("content.adapt"))
+        for creative_type in ["advertising_image", "instagram_carousel", "short_video", "tech_educational_video", "ugc_ad", "story_sequence", "live_stream", "newsletter"]:
+            self.assertIn(creative_type, schema)
+
+    def test_discriminated_types_require_format_specific_fields(self):
+        image = {
+            "creative_type": "advertising_image", "objective": "Apresentar um benefício real",
+            "headline": "Uma mensagem clara para a peça", "visual_direction": "Produto em uso com um único ponto focal verificável",
+            "overlay_text": "Veja como funciona", "caption": "Contexto adicional para a imagem publicada.", "cta": "Conheça todos os detalhes disponíveis."
+        }
+        self.assertEqual(validate_result("content.adapt", image, {"creative_type": "advertising_image"})["creative_type"], "advertising_image")
+        with self.assertRaises(ValidationError):
+            validate_result("content.adapt", {**image, "creative_type": "newsletter"}, {"creative_type": "newsletter"})
+
+    def test_canonical_catalog_types_are_exactly_eight(self):
+        schema = json.dumps(json_schema_for("content.adapt"))
+        canonical = ["advertising_image", "instagram_carousel", "short_video", "tech_educational_video", "ugc_ad", "story_sequence", "live_stream", "newsletter"]
+        self.assertEqual(sum(f'"const": "{item}"' in schema for item in canonical), 8)
+
+    def test_adaptation_preserves_server_provenance(self):
+        base = {
+            "creative_type": "short_video", "objective": "Ensinar um processo útil",
+            "hooks": ["Primeiro gancho específico", "Segundo gancho específico", "Terceiro gancho específico"],
+            "scenes": [
+                {"order": 1, "visual": "Criador apresenta o problema diante da câmera", "speech": "Veja como começar este processo com segurança.", "duration_seconds": 8},
+                {"order": 2, "visual": "Criador demonstra uma etapa concreta do processo", "speech": "Agora aplique esta etapa e confira o resultado.", "duration_seconds": 10},
+            ], "caption": "Uma explicação prática para acompanhar a demonstração.", "cta": "Salve para aplicar este processo depois."
+        }
+        provenance = {"template_id": "00000000-0000-0000-0000-000000000001", "template_version": 1}
+        result = validate_result("content.adapt", base, {"format": "reel", "creative_type": "short_video", "template_provenance": provenance})
+        self.assertEqual(result["template_provenance"], provenance)
+
     def test_unknown_operation_is_rejected(self):
         with self.assertRaises(ValueError):
             validate_result("unknown", {})

@@ -1,11 +1,12 @@
 import os
 import unittest
+from unittest.mock import AsyncMock, patch
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_PUBLISHABLE_KEY", "publishable-test")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "service-role-test")
 
-from app.main import normalize_creator_context
+from app.main import AdaptRequest, Identity, adapt_content, normalize_creator_context
 
 
 class ContextNormalizationTests(unittest.TestCase):
@@ -81,6 +82,28 @@ class ContextNormalizationTests(unittest.TestCase):
             "publishing_frequency": "4 vezes por semana",
             "resources": "Celular, tripé e ring light",
         })
+
+
+class AdaptationContextTests(unittest.IsolatedAsyncioTestCase):
+    async def test_adaptation_requires_server_authorized_context_in_atomic_job(self):
+        authorized = {"nichos": {"principal": "corrida"}, "publico": "iniciantes", "estilo": "direto", "monetizacao": "afiliados", "objetivos": "educar", "restricoes": ["sem promessas"]}
+        class Query:
+            def __init__(self, data): self.data = data
+            def select(self, *args): return self
+            def eq(self, *args): return self
+            def single(self): return self
+            def maybe_single(self): return self
+            def execute(self): return self
+        class Admin:
+            def table(self, name):
+                if name == "public_template_catalog": return Query({"id": "00000000-0000-0000-0000-000000000001", "version": 1})
+                return Query({"id": "job-id", "kind": "content.adapt", "payload": {"authorized_creator_context": authorized}})
+        request = AdaptRequest(template_id="00000000-0000-0000-0000-000000000001", template_version=1, adaptation_brief="Adapte ao contexto autorizado", payload={})
+        user = Identity(user_id="user-id", token="user-token")
+        with patch("app.main.start_template_adaptation", AsyncMock(return_value={"ai_job_id": "job-id", "content_plan_id": "plan-id", "provenance_id": "provenance-id"})), patch("app.main.admin", Admin()):
+            result = await adapt_content(request, user, "adaptation-key-1")
+        self.assertEqual(result["job"]["payload"]["authorized_creator_context"], authorized)
+        self.assertEqual(result["job"]["id"], "job-id")
 
 
 if __name__ == "__main__":

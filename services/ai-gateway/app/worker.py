@@ -40,12 +40,13 @@ def prompt_for(job: dict) -> str:
             "captação, edição ou exercícios. A legenda complementa a peça e o CTA é coerente com o objetivo."
         ),
         "content.revise": "Revise somente os campos pedidos e mantenha as demais decisões.",
+        "content.adapt": "Crie uma adaptação original a partir da estrutura aprovada, do briefing e exclusivamente do authorized_creator_context. Considere nichos, público, estilo, monetização, objetivos e restrições autorizados. Preserve a proveniência, sem copiar texto, personagens, marcas, claims ou execução literal.",
         "memories.extract": "Extraia apenas preferências duráveis não sensíveis. Retorne sugestões revisáveis.",
         "conversations.summarize": "Resuma fatos, decisões, preferências e pendências sem inventar.",
         "trends.research": "Interprete as evidências fornecidas; não invente tendências ou fontes.",
     }
     instruction = instructions.get(job["kind"], "Ajude o criador.")
-    if job["kind"] in {"content.generate", "content.revise"}:
+    if job["kind"] in {"content.generate", "content.revise", "content.adapt"}:
         content_format = str(job.get("payload", {}).get("format", "short-video"))
         format_rules = {
             "carousel": "Para carrossel, trate cada cena como um card com composição visual e texto específicos; use duração 2 apenas como metadado técnico.",
@@ -146,7 +147,11 @@ async def run_job(job: dict):
 
 
 def promote_result(job: dict, result: dict):
-    if job["kind"] == "memories.extract":
+    if job["kind"] == "content.adapt":
+        db.rpc("complete_community_adaptation", {
+            "p_ai_job_id": job["id"], "p_result": result,
+        }).execute()
+    elif job["kind"] == "memories.extract":
         payload = job["payload"]
         source_type = payload.get("source_type", "ai_job")
         source_id = payload.get("source_id", job["id"])

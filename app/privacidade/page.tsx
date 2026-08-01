@@ -7,7 +7,7 @@ export default function PrivacyPage() {
     <article>
       <Link href="/">← Voltar ao Ritmo</Link>
       <h1>Política de Privacidade</h1>
-      <p>Última atualização: 27 de julho de 2026.</p>
+      <p>Última atualização: 30 de julho de 2026.</p>
       <h2>Dados tratados</h2>
       <p>Tratamos dados de conta, preferências, agenda, conteúdo, conversas, memórias confirmadas, publicações, métricas e registros técnicos necessários à segurança.</p>
       <h2>Finalidades</h2>
@@ -16,6 +16,9 @@ export default function PrivacyPage() {
       <p>O gateway processa somente o contexto necessário. Memórias sugeridas dependem de confirmação e podem ser rejeitadas, arquivadas ou excluídas.</p>
       <h2>Compartilhamento</h2>
       <p>Dados são compartilhados apenas com operadores necessários à hospedagem, autenticação e processamento, conforme a configuração do ambiente.</p>
+      <h2>Biblioteca pública</h2>
+      <p>Quando você escolhe publicar, ficam públicos somente o perfil público configurado, o conteúdo aprovado, sua versão, autoria e contagens agregadas. E-mail, contexto criativo privado, salvamentos, métricas privadas e identificadores internos não são exibidos.</p>
+      <p>Curtidas, denúncias, eventos de moderação e proveniência de adaptações são tratados para operar e proteger a Biblioteca. Salvamentos e adaptações permanecem privados.</p>
       <h2>Retenção e segurança</h2>
       <p>Conversas e conteúdo permanecem até exclusão pelo usuário ou encerramento da conta. Logs operacionais devem seguir a política de retenção definida para produção.</p>
       <h2>Seus direitos</h2>
