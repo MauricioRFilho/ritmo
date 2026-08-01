@@ -6,6 +6,35 @@ from pydantic import ValidationError
 from app.schemas import json_schema_for, ollama_schema_for, validate_result
 
 
+def complete_creator_service(scene_duration=6):
+    ideas = []
+    for idea_index, angle in enumerate(["história pessoal", "ponto de vista", "explicação educativa"], start=1):
+        ideas.append({
+            "title": f"Ideia completa {idea_index}: {angle}",
+            "concept": f"Abordagem de {angle} aplicada ao fato real do briefing.",
+            "hook": f"Gancho específico {idea_index} para abrir esta abordagem",
+            "scenes": [{
+                "order": scene_index,
+                "visual": f"Plano filmável {scene_index} da abordagem {idea_index}",
+                "speech": f"Fala exata {scene_index} com informação concreta da ideia {idea_index}.",
+                "duration_seconds": scene_duration,
+            } for scene_index in range(1, 4)],
+            "narration": f"Narração completa e natural da ideia {idea_index}, conectando começo, desenvolvimento e resultado.",
+            "final_line": f"Encerramento específico e memorável da ideia {idea_index}.",
+            "text_overlays": [f"Texto de tela específico {idea_index}"],
+            "capture_notes": [f"Capture o plano principal da ideia {idea_index}"],
+            "editing_notes": [f"Use cortes coerentes com a ideia {idea_index}"],
+        })
+    return {
+        "objective": "Transformar um fato real em conteúdo útil e publicável",
+        "recommended_idea_index": 1,
+        "ideas": ideas,
+        "caption": "Legenda completa que contextualiza o conteúdo sem repetir todo o roteiro.",
+        "cta": "Conte nos comentários qual abordagem você usaria.",
+        "hashtags": ["#conteudo", "#criadores", "#roteiro"],
+    }
+
+
 class SchemaTests(unittest.TestCase):
     def test_ollama_schema_removes_large_string_bounds(self):
         serialized = json.dumps(ollama_schema_for("content.generate"))
@@ -13,25 +42,10 @@ class SchemaTests(unittest.TestCase):
         self.assertIn("maxItems", serialized)
 
     def test_content_package_accepts_a_complete_result(self):
-        result = validate_result("content.generate", {
-            "objective": "Ensinar um conceito",
-            "hooks": ["Você comete este erro?", "Sua recuperação pode melhorar hoje", "Pare de ignorar este sinal"],
-            "scenes": [{
-                "order": 1,
-                "visual": "Criador em plano médio aponta para a panturrilha",
-                "speech": "Sua panturrilha segue dolorida depois do treino?",
-                "duration_seconds": 8,
-            }, {
-                "order": 2,
-                "visual": "Criador demonstra mobilidade leve junto à parede",
-                "speech": "Faça este movimento devagar e pare se houver dor aguda.",
-                "duration_seconds": 10,
-            }],
-            "caption": "Uma legenda útil.",
-            "cta": "Salve para rever.",
-            "hashtags": ["#conteudo"],
-        })
-        self.assertEqual(result["scenes"][0]["order"], 1)
+        result = validate_result("content.generate", complete_creator_service())
+        self.assertEqual(len(result["ideas"]), 3)
+        self.assertEqual(result["recommended_idea_index"], 1)
+        self.assertEqual(result["ideas"][0]["scenes"][0]["order"], 1)
 
     def test_content_package_rejects_unstructured_output(self):
         with self.assertRaises(ValidationError):
@@ -119,16 +133,7 @@ class SchemaTests(unittest.TestCase):
                 })
 
     def test_carousel_is_not_rejected_by_video_duration(self):
-        result = validate_result("content.generate", {
-            "objective": "Ensinar recuperação após o treino",
-            "hooks": ["Sua panturrilha ainda pesa?", "Três cuidados depois da corrida", "Recupere melhor sem exagerar"],
-            "scenes": [
-                {"order": 1, "visual": "Card com título e ilustração da panturrilha", "speech": "Comece observando a intensidade do desconforto.", "duration_seconds": 2},
-                {"order": 2, "visual": "Card com demonstração de movimento leve", "speech": "Faça mobilidade sem insistir em dor aguda.", "duration_seconds": 2},
-            ],
-            "caption": "Uma sequência simples para orientar sua recuperação.",
-            "cta": "Salve o carrossel para rever após o treino.",
-        }, {"format": "carousel"})
-        self.assertEqual(len(result["scenes"]), 2)
+        result = validate_result("content.generate", complete_creator_service(scene_duration=2), {"format": "carousel"})
+        self.assertEqual(len(result["ideas"]), 3)
 if __name__ == "__main__":
     unittest.main()

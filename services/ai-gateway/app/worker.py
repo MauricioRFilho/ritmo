@@ -32,12 +32,15 @@ def prompt_for(job: dict) -> str:
         "plan.generate": "Crie um plano semanal sustentável, sem conflitos e usando apenas os recursos informados.",
         "plan.revise": "Revise o plano preservando itens bloqueados manualmente.",
         "content.generate": (
-            "Crie uma proposta específica, útil e pronta para produção no formato solicitado. "
-            "Entregue exatamente 3 opções de gancho diferentes e 2 a 8 cenas em ordem sequencial. "
-            "Cada cena deve dizer concretamente o que aparece e o texto exato do criador ou da peça. "
+            "Entregue um serviço editorial completo com exatamente 3 ideias realmente diferentes e prontas para produção. "
+            "Varie o ângulo narrativo entre as ideias, por exemplo história pessoal, POV/humor e conteúdo educativo, "
+            "sem forçar esses estilos quando não combinarem com o briefing. Marque a melhor em recommended_idea_index. "
+            "Cada ideia precisa de título, conceito, gancho exato, 3 a 8 cenas filmáveis, narração corrida, "
+            "frase final, textos de tela, plano de captação e notas de edição. "
+            "Cada cena deve dizer concretamente o que aparece e a fala exata correspondente. "
             "Use título, objetivo, nicho, público, estilo e recursos recebidos; não invente credenciais ou resultados. "
             "Nunca use nomes de campos ou placeholders como conteúdo, incluindo ganchos, cenas, falas, "
-            "captação, edição ou exercícios. A legenda complementa a peça e o CTA é coerente com o objetivo."
+            "captação, edição ou exercícios. Produza também uma legenda publicável, CTA e hashtags específicas."
         ),
         "content.revise": "Revise somente os campos pedidos e mantenha as demais decisões.",
         "content.adapt": "Crie uma adaptação original a partir da estrutura aprovada, do briefing e exclusivamente do authorized_creator_context. Considere nichos, público, estilo, monetização, objetivos e restrições autorizados. Preserve a proveniência, sem copiar texto, personagens, marcas, claims ou execução literal.",
@@ -51,8 +54,8 @@ def prompt_for(job: dict) -> str:
         format_rules = {
             "carousel": "Para carrossel, trate cada cena como um card com composição visual e texto específicos; use duração 2 apenas como metadado técnico.",
             "story": "Para Story, some entre 15 e 45 segundos e limite cada quadro a 15 segundos.",
-            "reel": "Para Reel, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
-            "short-video": "Para vídeo curto, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
+            "reel": "Para cada Reel, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
+            "short-video": "Para cada vídeo curto, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
         }
         instruction = (
             f"{instruction} {format_rules.get(content_format, format_rules['short-video'])} "

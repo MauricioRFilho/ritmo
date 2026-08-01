@@ -39,10 +39,14 @@ type ContentPlan = {
 
 type ContentPackage = {
   objective: string;
-  hooks: string[];
-  scenes: Array<{ order: number; visual: string; speech: string; duration_seconds: number }>;
-  capture_notes: string[];
-  editing_notes: string[];
+  recommended_idea_index: number;
+  selected_idea_index?: number;
+  ideas: Array<{
+    title: string; concept: string; hook: string;
+    scenes: Array<{ order: number; visual: string; speech: string; duration_seconds: number }>;
+    narration: string; final_line: string; text_overlays: string[];
+    capture_notes: string[]; editing_notes: string[];
+  }>;
   caption: string;
   cta: string;
   hashtags: string[];
@@ -118,17 +122,24 @@ function assertUsefulContentPackage(value: unknown, format: string): asserts val
     const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
     return !genericScriptTerms.has(normalized);
   };
-  if (!Array.isArray(result.hooks) || result.hooks.length !== 3 || result.hooks.some((hook) => !useful(hook))) throw new Error("A IA trouxe ganchos genéricos. Vamos gerar uma proposta melhor.");
-  if (new Set(result.hooks.map((hook) => hook.trim().toLowerCase())).size !== 3) throw new Error("A IA repetiu os ganchos.");
-  if (!Array.isArray(result.scenes) || result.scenes.length < 2 || result.scenes.length > 8) throw new Error("A quantidade de cenas não serve para um vídeo curto.");
-  let duration = 0;
-  result.scenes.forEach((scene, index) => {
-    if (scene.order !== index + 1 || !useful(scene.visual) || !useful(scene.speech) || !Number.isInteger(scene.duration_seconds) || scene.duration_seconds < 2 || scene.duration_seconds > 20) throw new Error(`A cena ${index + 1} precisa de mais detalhes.`);
-    duration += scene.duration_seconds;
-  });
+  if (!Array.isArray(result.ideas) || result.ideas.length !== 3) throw new Error("A IA precisa entregar três ideias completas.");
+  if (!Number.isInteger(result.recommended_idea_index) || Number(result.recommended_idea_index) < 1 || Number(result.recommended_idea_index) > 3) throw new Error("A IA não indicou a ideia recomendada.");
   const maximum = format === "carousel" ? null : format === "story" ? 45 : 60;
-  if (maximum !== null && (duration < 15 || duration > maximum)) throw new Error(`O roteiro ficou com ${duration}s; o limite deste formato é ${maximum}s.`);
-  if (!Array.isArray(result.capture_notes) || !Array.isArray(result.editing_notes) || !Array.isArray(result.hashtags)) throw new Error("As orientações do roteiro vieram incompletas.");
+  const titles = new Set<string>(); const hooks = new Set<string>();
+  result.ideas.forEach((idea, ideaIndex) => {
+    if (!useful(idea.title) || !useful(idea.concept) || !useful(idea.hook) || !useful(idea.narration) || !useful(idea.final_line)) throw new Error(`A ideia ${ideaIndex + 1} veio incompleta.`);
+    titles.add(idea.title.trim().toLowerCase()); hooks.add(idea.hook.trim().toLowerCase());
+    if (!Array.isArray(idea.scenes) || idea.scenes.length < 3 || idea.scenes.length > 8) throw new Error(`A ideia ${ideaIndex + 1} precisa de 3 a 8 cenas.`);
+    let duration = 0;
+    idea.scenes.forEach((scene, sceneIndex) => {
+      if (scene.order !== sceneIndex + 1 || !useful(scene.visual) || !useful(scene.speech) || !Number.isInteger(scene.duration_seconds) || scene.duration_seconds < 2 || scene.duration_seconds > 20) throw new Error(`A cena ${sceneIndex + 1} da ideia ${ideaIndex + 1} precisa de mais detalhes.`);
+      duration += scene.duration_seconds;
+    });
+    if (maximum !== null && (duration < 15 || duration > maximum)) throw new Error(`A ideia ${ideaIndex + 1} ficou com ${duration}s; o limite é ${maximum}s.`);
+    if (!Array.isArray(idea.capture_notes) || !Array.isArray(idea.editing_notes) || !Array.isArray(idea.text_overlays)) throw new Error(`As orientações da ideia ${ideaIndex + 1} vieram incompletas.`);
+  });
+  if (titles.size !== 3 || hooks.size !== 3) throw new Error("As três ideias precisam ter abordagens diferentes.");
+  if (!Array.isArray(result.hashtags) || result.hashtags.length < 3) throw new Error("A entrega precisa de hashtags específicas.");
   if (!useful(result.objective) || !useful(result.caption) || !useful(result.cta)) throw new Error("Objetivo, legenda ou CTA vieram genéricos.");
 }
 
@@ -294,7 +305,11 @@ export function RitmoDashboard() {
       platform: String(form.get("platform")) as Platform,
       format: String(form.get("format")).trim(),
       status: "idea",
-      payload: { niche_id: niche },
+      payload: {
+        niche_id: niche,
+        briefing: String(form.get("briefing") ?? "").trim(),
+        available_footage: String(form.get("available_footage") ?? "").trim(),
+      },
     };
     setNotice("Salvando ideia...");
     const { data, error: insertError } = await db.from("content_plans").insert(record).select("*").single();
@@ -338,6 +353,8 @@ export function RitmoDashboard() {
           niche_id: niche,
           creator_context: profile?.context ?? {},
           content_taxonomy: taxonomy,
+          briefing: plan.payload.briefing ?? "",
+          available_footage: plan.payload.available_footage ?? "",
         } }),
       });
       if (!response.ok) throw new Error(await response.text());
@@ -379,6 +396,7 @@ export function RitmoDashboard() {
     const rememberPatterns = form.get("remember_patterns") === "on";
     const edited: ContentPackage = {
       ...draft,
+      selected_idea_index: Number(form.get("selected_idea_index")) || draft.recommended_idea_index,
       caption: String(form.get("caption")),
       cta: String(form.get("cta")),
     };
@@ -790,6 +808,8 @@ function IdeaDialog({ onClose, onSubmit }: { onClose: () => void; onSubmit: (eve
     <p className="eyebrow">NOVA IDEIA</p><h2>O que você quer criar?</h2><p>Registre a intenção primeiro. A IA entra somente quando você pedir.</p>
     <label>Título<input name="title" required minLength={3} maxLength={200} placeholder="Ex.: 3 erros que atrasam seu conteúdo"/></label>
     <label>Objetivo<textarea name="objective" required maxLength={500} placeholder="O que a pessoa deve aprender, sentir ou fazer?"/></label>
+    <label>Briefing e fatos do conteúdo<textarea name="briefing" required minLength={20} maxLength={2000} placeholder="Conte o que aconteceu, dados reais, produto, treino, etapas, opinião e qualquer detalhe que precisa aparecer."/></label>
+    <label>O que você consegue gravar?<textarea name="available_footage" maxLength={1000} placeholder="Ex.: tela do aplicativo, amarrando o tênis, pista, relógio, bastidores e fala olhando para a câmera."/></label>
     <div className="field-grid"><label>Plataforma<select name="platform" defaultValue="instagram"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select></label>
       <label>Formato<select name="format" defaultValue="reel"><option value="reel">Reel</option><option value="short-video">Vídeo curto</option><option value="carousel">Carrossel</option><option value="story">Story</option></select></label></div>
     <button className="primary-button full">Salvar ideia</button></form></div>;
@@ -799,15 +819,24 @@ function StudioDialog({ plan, draft, status, submitting, onClose, onSubmit }: {
   plan: ContentPlan; draft: ContentPackage | null; status: string; submitting: boolean; onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  const totalDuration = draft?.scenes.reduce((total, scene) => total + scene.duration_seconds, 0) ?? 0;
+  const [selectedIdeaIndex, setSelectedIdeaIndex] = useState(1);
+  useEffect(() => { if (draft) setSelectedIdeaIndex(draft.recommended_idea_index); }, [draft]);
+  const selectedIdea = draft?.ideas[selectedIdeaIndex - 1] ?? null;
+  const totalDuration = selectedIdea?.scenes.reduce((total, scene) => total + scene.duration_seconds, 0) ?? 0;
   const durationLimit = plan.format === "story" ? 45 : 60;
   return <div className="modal-backdrop studio-backdrop"><form className="product-modal studio-modal" onSubmit={onSubmit}><button type="button" className="modal-close" onClick={onClose}><X/></button>
     <p className="eyebrow">ESTÚDIO DE CONTEÚDO</p><h2>{plan.title}</h2><div className="job-status">{draft ? <Check/> : <LoaderCircle className="spin"/>}<span>{status}</span></div>
     {!draft ? <div className="generation-wait"><Sparkles/><strong>Preparando uma proposta estruturada</strong><span>Sua ideia original foi preservada.</span></div> :
-      <>{plan.format !== "carousel" && <div className="script-duration"><strong>{totalDuration}s</strong><span>Duração estimada · máximo {durationLimit}s</span></div>}<section className="draft-section"><span>3 OPÇÕES DE GANCHO</span>{draft.hooks.map((hook) => <p key={hook}>{hook}</p>)}</section>
-        <section className="scene-list"><span>CENAS</span>{draft.scenes.map((scene) => <article key={scene.order}><i>{scene.order}</i><div><strong>{scene.visual}</strong><p>{scene.speech}</p><small>{scene.duration_seconds}s</small></div></article>)}</section>
-        {(draft.capture_notes.length > 0 || draft.editing_notes.length > 0) && <section className="draft-section"><span>COMO GRAVAR E EDITAR</span>{draft.capture_notes.map((note) => <p key={"capture-" + note}>Captação: {note}</p>)}{draft.editing_notes.map((note) => <p key={"editing-" + note}>Edição: {note}</p>)}</section>}
+      <><section className="idea-selector" aria-label="Escolha uma ideia"><span>3 IDEIAS COMPLETAS</span>{draft.ideas.map((idea, index) => <button key={idea.title} type="button" className={selectedIdeaIndex === index + 1 ? "selected" : ""} onClick={() => setSelectedIdeaIndex(index + 1)}><small>IDEIA {index + 1}{draft.recommended_idea_index === index + 1 ? " · FAVORITA" : ""}</small><strong>{idea.title}</strong><em>{idea.concept}</em></button>)}</section>
+        <input type="hidden" name="selected_idea_index" value={selectedIdeaIndex}/>
+        {selectedIdea && <><section className="draft-section"><span>GANCHO</span><p>{selectedIdea.hook}</p></section>
+          {plan.format !== "carousel" && <div className="script-duration"><strong>{totalDuration}s</strong><span>Duração estimada · máximo {durationLimit}s</span></div>}
+          <section className="scene-list"><span>CENAS</span>{selectedIdea.scenes.map((scene) => <article key={scene.order}><i>{scene.order}</i><div><strong>{scene.visual}</strong><p>{scene.speech}</p><small>{scene.duration_seconds}s</small></div></article>)}</section>
+          <section className="draft-section"><span>NARRAÇÃO</span><p>{selectedIdea.narration}</p><span>FINAL</span><p>{selectedIdea.final_line}</p></section>
+          {selectedIdea.text_overlays.length > 0 && <section className="draft-section"><span>TEXTOS NA TELA</span>{selectedIdea.text_overlays.map((text) => <p key={text}>{text}</p>)}</section>}
+          {(selectedIdea.capture_notes.length > 0 || selectedIdea.editing_notes.length > 0) && <section className="draft-section"><span>COMO GRAVAR E EDITAR</span>{selectedIdea.capture_notes.map((note) => <p key={"capture-" + note}>Captação: {note}</p>)}{selectedIdea.editing_notes.map((note) => <p key={"editing-" + note}>Edição: {note}</p>)}</section>}</>}
         <label>Legenda<textarea name="caption" required defaultValue={draft.caption}/></label><label>CTA<input name="cta" required defaultValue={draft.cta}/></label>
+        <section className="draft-section"><span>HASHTAGS</span><p>{draft.hashtags.join(" ")}</p></section>
         <label>Agendar para<input name="scheduled_for" type="datetime-local" required min={new Date().toISOString().slice(0, 16)}/></label>
         <label className="remember-pattern"><input name="remember_patterns" type="checkbox" defaultChecked/><span><strong>Aprender com este criativo</strong>Após confirmar, o Ritmo sugere padrões reutilizáveis em Memórias. Você decide o que aceitar.</span></label>
         <div className="human-confirmation"><Check/><span>Ao confirmar, você cria uma versão imutável e aprova o agendamento.</span></div>
