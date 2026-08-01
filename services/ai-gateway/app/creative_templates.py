@@ -7,8 +7,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-ROOT = Path(__file__).resolve().parents[3]
-MODELS_DIR = ROOT / "modelos"
+MODULE_PATH = Path(__file__).resolve()
+MODEL_CANDIDATES = [MODULE_PATH.parents[1] / "modelos"]
+if len(MODULE_PATH.parents) > 3:
+    MODEL_CANDIDATES.append(MODULE_PATH.parents[3] / "modelos")
+MODELS_DIR = next((path for path in MODEL_CANDIDATES if (path / "library.json").is_file()), MODEL_CANDIDATES[0])
 CREATIVE_TYPES = {"advertising_image", "instagram_carousel", "short_video", "tech_educational_video", "ugc_ad", "story_sequence", "live_stream", "newsletter"}
 
 TEMPLATE_GUIDANCE: dict[str, dict[str, Any]] = {
