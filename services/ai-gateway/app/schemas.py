@@ -36,6 +36,57 @@ class ContentScene(BaseModel):
         return _useful_text(value)
 
 
+class CreativeIdea(BaseModel):
+    title: str = Field(min_length=8, max_length=160)
+    concept: str = Field(min_length=12, max_length=500)
+    hook: str = Field(min_length=8, max_length=240)
+    scenes: list[ContentScene] = Field(min_length=3, max_length=8)
+    narration: str = Field(min_length=20, max_length=1800)
+    final_line: str = Field(min_length=8, max_length=300)
+    text_overlays: list[str] = Field(default_factory=list, max_length=8)
+    capture_notes: list[str] = Field(default_factory=list, max_length=10)
+    editing_notes: list[str] = Field(default_factory=list, max_length=8)
+
+    @field_validator("title", "concept", "hook", "narration", "final_line")
+    @classmethod
+    def idea_text_must_be_useful(cls, value: str) -> str:
+        return _useful_text(value)
+
+    @field_validator("text_overlays", "capture_notes", "editing_notes")
+    @classmethod
+    def idea_notes_must_be_specific(cls, values: list[str]) -> list[str]:
+        return [_useful_text(value) for value in values]
+
+
+class CreatorServicePackage(BaseModel):
+    objective: str = Field(min_length=8, max_length=500)
+    recommended_idea_index: int = Field(ge=1, le=3)
+    ideas: list[CreativeIdea] = Field(min_length=3, max_length=3)
+    caption: str = Field(min_length=8, max_length=2200)
+    cta: str = Field(min_length=8, max_length=300)
+    hashtags: list[str] = Field(min_length=3, max_length=10)
+    suggested_time: str | None = None
+
+    @field_validator("objective", "caption", "cta")
+    @classmethod
+    def package_text_must_be_useful(cls, value: str) -> str:
+        return _useful_text(value)
+
+    @model_validator(mode="after")
+    def enforce_complete_service(self, info: ValidationInfo) -> "CreatorServicePackage":
+        if len({idea.title.casefold() for idea in self.ideas}) != 3 or len({idea.hook.casefold() for idea in self.ideas}) != 3:
+            raise ValueError("as três ideias devem ter títulos e ganchos diferentes")
+        content_format = str((info.context or {}).get("format", "short-video"))
+        maximum = None if content_format == "carousel" else 45 if content_format == "story" else 60
+        for idea in self.ideas:
+            duration = sum(scene.duration_seconds for scene in idea.scenes)
+            if maximum is not None and (duration < 15 or duration > maximum):
+                raise ValueError(f"cada ideia deve durar entre 15 e {maximum} segundos")
+            if [scene.order for scene in idea.scenes] != list(range(1, len(idea.scenes) + 1)):
+                raise ValueError("cenas devem ter ordem sequencial em cada ideia")
+        return self
+
+
 class ContentPackage(BaseModel):
     creative_type: Literal["advertising_image", "instagram_carousel", "short_video", "tech_educational_video", "ugc_ad", "story_sequence", "live_stream", "newsletter"] | None = None
     template_provenance: dict | None = None
@@ -231,8 +282,8 @@ class TrendInterpretationResult(BaseModel):
 RESULT_MODELS = {
     "plan.generate": WeeklyPlanResult,
     "plan.revise": WeeklyPlanResult,
-    "content.generate": ContentPackage,
-    "content.revise": ContentPackage,
+    "content.generate": CreatorServicePackage,
+    "content.revise": CreatorServicePackage,
     "content.adapt": AdaptedContentPackage,
     "memories.extract": MemoryExtractionResult,
     "conversations.summarize": ConversationSummaryResult,
