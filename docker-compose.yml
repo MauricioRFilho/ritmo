@@ -1,6 +1,8 @@
 services:
   gateway:
-    build: ./services/ai-gateway
+    build:
+      context: .
+      dockerfile: services/ai-gateway/Dockerfile
     env_file: ${ENV_FILE:-.env.example}
     ports: ["8000:8000"]
     depends_on:
@@ -9,7 +11,9 @@ services:
     restart: unless-stopped
     networks: [public, ai_private]
   worker:
-    build: ./services/ai-gateway
+    build:
+      context: .
+      dockerfile: services/ai-gateway/Dockerfile
     command: ["python", "-m", "app.worker"]
     env_file: ${ENV_FILE:-.env.example}
     depends_on:
@@ -18,7 +22,9 @@ services:
     restart: unless-stopped
     networks: [public, ai_private]
   privacy-worker:
-    build: ./services/ai-gateway
+    build:
+      context: .
+      dockerfile: services/ai-gateway/Dockerfile
     command: ["python", "-m", "app.privacy_worker"]
     env_file: ${ENV_FILE:-.env.example}
     restart: unless-stopped

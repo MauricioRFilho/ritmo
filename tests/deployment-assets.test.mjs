@@ -22,3 +22,13 @@ test("artefato publicado não contém recursos locais", async () => {
   assert.doesNotMatch(bundle, /http:\/\/localhost:8000/i);
   assert.match(bundle, /https:\/\/ritmo-api[.]gapet[.]com[.]br/);
 });
+
+
+test("imagem Docker inclui o catálogo oficial no layout de runtime", async () => {
+  const dockerfile = await readFile(new URL("../services/ai-gateway/Dockerfile", import.meta.url), "utf8");
+  const compose = await readFile(new URL("../docker-compose.yml", import.meta.url), "utf8");
+  assert.match(dockerfile, /COPY modelos \.\/modelos/);
+  assert.match(dockerfile, /COPY services\/ai-gateway\/app \.\/app/);
+  assert.match(compose, /context: \./);
+  assert.match(compose, /dockerfile: services\/ai-gateway\/Dockerfile/);
+});
