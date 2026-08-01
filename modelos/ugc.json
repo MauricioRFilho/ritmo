@@ -1,0 +1,56 @@
+{
+  "creator_type": "ugc_ad",
+  "campaign": {
+    "brand": "Ethos",
+    "product": "Óculos esportivo",
+    "campaign_name": "Treine sem distrações",
+    "platform": "instagram_reels",
+    "duration_seconds": 35
+  },
+  "creator": {
+    "profile": "atleta amador",
+    "communication_style": "natural",
+    "camera_style": "selfie",
+    "environment": "parque após uma corrida"
+  },
+  "product_highlights": [
+    "Não embaça durante o treino",
+    "Encaixe confortável",
+    "Leve durante a corrida",
+    "Proteção para atividades externas"
+  ],
+  "script": {
+    "hook": "O pior óculos é aquele que você sente durante toda a corrida.",
+    "problem": "Eu já usei modelos que escorregavam, embaçavam e incomodavam depois de alguns quilômetros.",
+    "solution": "Nesse treino de 7 km, usei o modelo da Ethos e praticamente esqueci que estava com ele.",
+    "proof": "Mesmo no calor e suando bastante, o óculos ficou firme e não embaçou.",
+    "offer": "O produto está em promoção e ainda tem desconto adicional com meu cupom.",
+    "call_to_action": "Use o cupom MAURICIOOTK para garantir o desconto."
+  },
+  "production": {
+    "shots": [
+      {
+        "scene": 1,
+        "description": "Criador colocando o óculos antes da corrida",
+        "duration_seconds": 4
+      },
+      {
+        "scene": 2,
+        "description": "Cenas correndo no parque",
+        "duration_seconds": 10
+      },
+      {
+        "scene": 3,
+        "description": "Close no produto após o treino",
+        "duration_seconds": 7
+      },
+      {
+        "scene": 4,
+        "description": "Depoimento olhando para a câmera",
+        "duration_seconds": 10
+      }
+    ],
+    "captions": true,
+    "show_coupon": true
+  }
+}

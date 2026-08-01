@@ -9,6 +9,7 @@ import httpx
 from pydantic import ValidationError
 from supabase import create_client
 
+from app.creative_templates import creative_library_context
 from app.observability import get_logger, log_event
 from app.schemas import ollama_schema_for, validate_result
 
@@ -52,7 +53,11 @@ def prompt_for(job: dict) -> str:
             "reel": "Para Reel, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
             "short-video": "Para vídeo curto, mire 20 a 45 segundos e jamais ultrapasse 60 segundos; use falas naturais e filmáveis.",
         }
-        instruction = f"{instruction} {format_rules.get(content_format, format_rules['short-video'])}"
+        instruction = (
+            f"{instruction} {format_rules.get(content_format, format_rules['short-video'])} "
+            f"MODELO DE REFERÊNCIA DA BIBLIOTECA: {creative_library_context(job.get('payload', {}))}. "
+            "Use memórias criativas aprovadas apenas como preferência; crie uma nova execução e não copie texto literal."
+        )
     payload = json.dumps(job["payload"], ensure_ascii=False)
     return f"{instruction}\nDADOS:\n{payload}\nResponda somente com o JSON válido do schema."
 
@@ -142,6 +147,9 @@ async def run_job(job: dict):
 
 def promote_result(job: dict, result: dict):
     if job["kind"] == "memories.extract":
+        payload = job["payload"]
+        source_type = payload.get("source_type", "ai_job")
+        source_id = payload.get("source_id", job["id"])
         rows = [{
             "user_id": job["user_id"],
             "category": item["category"],
@@ -149,8 +157,8 @@ def promote_result(job: dict, result: dict):
             "status": "suggested",
             "confidence": item["confidence"],
             "sensitivity": item["sensitivity"],
-            "source_type": "ai_job",
-            "source_id": job["id"],
+            "source_type": source_type,
+            "source_id": source_id,
         } for item in result["suggestions"] if item["sensitivity"] == "normal"]
         if rows:
             created = db.table("creator_memories").insert(rows).execute()
@@ -158,8 +166,8 @@ def promote_result(job: dict, result: dict):
                 db.table("memory_sources").insert({
                     "user_id": job["user_id"],
                     "memory_id": memory["id"],
-                    "source_type": "ai_job",
-                    "source_id": job["id"],
+                    "source_type": source_type,
+                    "source_id": source_id,
                     "excerpt": job["payload"].get("excerpt", "")[:1000],
                 }).execute()
     elif job["kind"] == "conversations.summarize":

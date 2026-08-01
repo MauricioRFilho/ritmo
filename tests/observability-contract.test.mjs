@@ -33,3 +33,22 @@ test("worker registra ciclo de vida com job id", async () => {
   }
   assert.match(source, /job_id=job\["id"\]/);
 });
+
+test("produção fecha documentação e aplica headers defensivos", async () => {
+  const main = await readFile(new URL("../services/ai-gateway/app/main.py", import.meta.url), "utf8");
+  const observability = await readFile(new URL("../services/ai-gateway/app/observability.py", import.meta.url), "utf8");
+  assert.match(main, /environment\.lower\(\) != "production" and settings\.api_docs_enabled/);
+  assert.match(main, /docs_url="\/docs" if docs_enabled else None/);
+  for (const header of ["X-Content-Type-Options", "X-Frame-Options", "Content-Security-Policy", "Cache-Control"]) {
+    assert.match(observability, new RegExp(header));
+  }
+});
+
+test("nginx limita requisições e preserva streaming", async () => {
+  const nginx = await readFile(new URL("../deploy/nginx/ritmo-api.gapet.com.br.conf", import.meta.url), "utf8");
+  assert.match(nginx, /limit_req_zone/);
+  assert.match(nginx, /limit_req_status 429/);
+  assert.match(nginx, /proxy_buffering off/);
+  assert.match(nginx, /proxy_request_buffering off/);
+  assert.match(nginx, /proxy_pass http:\/\/127\.0\.0\.1:8000/);
+});

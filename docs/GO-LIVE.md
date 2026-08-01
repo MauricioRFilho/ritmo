@@ -1,75 +1,60 @@
 # Go Live do Ritmo
 
-Status em 28/07/2026: **staging técnico publicado e aprovado; produção pública
-bloqueada somente pelos gates externos e pelo smoke visual autenticado**.
+Status em 30/07/2026: **staging técnico operacional; Go Live público bloqueado por gates internos de release e dependências externas**.
 
-## Gates
+## Gates verificados
 
 | Gate | Estado | Evidência ou bloqueio |
 |---|---|---|
-| RLS de tabelas privadas | Validado localmente | migrations do zero e 23 pgTAP, inclusive isolamento entre usuários |
-| Auth única | Implementado | Supabase único; SIWC e D1/Drizzle removidos |
-| Termos e privacidade | Rascunhos funcionais | páginas e links; faltam contato, responsável e revisão jurídica |
-| Ambientes isolados | Staging provisionado | Supabase remoto e VPS de IA ativos; produção separada ainda pendente |
-| Onboarding | Implementado | nicho, plataforma, modo de conta e disponibilidade |
-| Dashboard real | Implementado | consultas Supabase; agenda fictícia removida |
-| Plano semanal | Implementado | geração, revisão, versão confirmada e promoção para conteúdos |
-| Conteúdo ponta a ponta | Implementado | ideia, job, polling, revisão, versão e agendamento |
-| Chat persistente | Implementado | frontend SSE e mensagens dos dois papéis |
-| Memória revisável | Implementado | extração idempotente, promoção segura, origem, aceite/rejeição/arquivo |
-| Schemas de IA | Validado | schemas JSON e quatro testes unitários |
-| Recuperação de jobs | Implementado | função protegida e chamada periódica |
-| Métricas manuais | Implementado | publicação e métricas informadas pelo usuário |
-| Exportação de dados | Implementado | JSON autenticado em `/dados` |
-| Solicitação de exclusão | Workflow implementado | pedido auditável; executor automático com claim, retry e conclusão pós-exclusão |
-| Cotas | Implementado no MVP | contagem horária persistida no Supabase |
-| Testes e CI | Validado | 26 testes de código + 23 pgTAP (49 verificações) e E2E técnico real; execução remota do workflow pendente |
-| Observabilidade | Parcial | logs correlacionados e rotação Docker na VPS; faltam destino e alertas |
-| Três nichos validados | Bloqueado externo | requer criadores piloto |
-| Suporte | Bloqueado externo | definir canal, responsáveis e SLA |
+| API pública de staging | Aprovado | health e docs `200`; CORS aceita a origem atual do Sites |
+| RLS e banco local | Aprovado | reset incremental e 33 pgTAP, incluindo aprovação criativa funcional |
+| Aprovação de conteúdo | Aprovado localmente | validação server-side, limite de payload, isolamento e idempotência |
+| Catálogo criativo | Aprovado localmente | 8 modelos JSON passam no validador; consumo especializado em runtime ainda é evolução futura |
+| Build e código | Aprovado localmente | build, 33 Node e 21 Python passam; houve flakiness transitória de arquivos no Vinext/Vite no Windows |
+| Hardening da API | Aprovado localmente | docs fechadas em produção, headers defensivos e rate limit Nginx versionados; aplicação remota pendente |
+| Jornada autenticada atual | Bloqueado | falta E2E visual completo após as mudanças de 29–30/07 |
+| CI remoto | Bloqueado | branch atual ainda não integrada à `main`; check remoto e branch protection sem evidência |
+| Restore e rollback | Bloqueado | falta restauração real em staging descartável e ensaio desta release |
+| Alertas | Bloqueado | logs existem, mas destino e alertas mínimos ainda não estão ativos/testados |
+| Produção isolada | Bloqueado | falta Supabase e infraestrutura separados do staging |
+| Capacidade de IA | Bloqueado | VPS atual sem GPU/3,8 GiB usa modelo reduzido; falta sizing e teste de carga |
+| Jurídico | Bloqueado externo | responsável, contato, retenção e revisão jurídica |
+| Suporte | Bloqueado externo | canal, responsável e SLA |
+| Pilotos | Bloqueado externo | validação com criadores de pelo menos três nichos |
 
-## Decisões fechadas
+## Evidência local atual
 
-- público inicial: profissional solo;
-- onboarding mínimo obrigatório;
-- diferencial: Estúdio de conteúdo;
-- métricas manuais no MVP;
-- Supabase para banco e autenticação;
-- CRUD direto sob RLS; gateway dedicado à IA;
-- modelo leve para resumo/memória e principal para plano/conteúdo/chat;
-- sem D1/Drizzle ou autenticação alternativa;
-- nenhum dado fictício em sessão autenticada.
+- `npm run lint`: passou;
+- `npm run build`: passou;
+- Node: 33/33;
+- Python: 21/21;
+- banco/RLS: 33/33 pgTAP após reset local;
+- biblioteca criativa: 8 modelos válidos;
+- API de staging: `/v1/health` e `/docs` responderam `200` em 30/07/2026;
+- CORS: preflight autenticado aceitou a origem `ritmo-criador.mauricio-srfh.chatgpt.site`.
 
-## Evidência mais recente
+Total de verificações automatizadas contabilizadas: **87** (33 Node + 21 Python + 33 pgTAP), além do validador dos 8 modelos.
 
-- `npm run check:release`: passou;
-- build: passou;
-- código: 26/26 testes (17 Node + 9 Python);
-- banco/RLS: 23/23 testes;
-- E2E técnico autenticado: passou;
-- dependências de produção: `npm audit --omit=dev` com 0 vulnerabilidades;
-- Docker de produção: configuração validada;
-- CI: workflow versionado;
-- VPS staging: gateway, workers e Ollama estáveis;
-- gateway público HTTPS validado em `https://ritmo-api.gapet.com.br`;
-- evidências: `docs/evidencias/2026-07-27-vps-staging.md` e `docs/evidencias/2026-07-28-tls-qa.md`;
-- Sites: versão 4 owner-only publicada com ambiente revisionado;
-- evidência final: `docs/evidencias/2026-07-28-e2e-staging.md`.
+## Decisões vigentes
 
-## Recursos e decisões externos necessários
+- staging permanece disponível para correções e aceite;
+- produção não reutilizará banco, segredos ou capacidade do staging;
+- nenhum modelo criativo entra no catálogo oficial sem revisão humana;
+- aprovação editorial não significa performance validada;
+- migrations permanecem incrementais e promoção exige backup e rollback verificáveis.
 
-- smoke visual autenticado do frontend publicado;
-- projeto Supabase separado de produção;
-- domínio;
-- responsável legal, contato de privacidade e retenção;
-- suporte e SLA;
-- capacidade/cota comercial;
-- revisão jurídica;
-- pilotos de três nichos.
+## Próxima sequência de promoção
+
+1. integrar a branch por PR revisada e obter CI verde;
+2. aplicar migrations em staging e recriar gateway/worker com o mesmo artefato;
+3. validar `nginx -t`, headers, rate limit, health e CORS;
+4. executar E2E autenticado visual: login, onboarding/contexto, geração curta, revisão, retry de confirmação, agenda e memória;
+5. executar backup, restore em ambiente descartável e ensaio de rollback;
+6. ativar e disparar alertas mínimos;
+7. provisionar produção isolada e validar capacidade;
+8. fechar jurídico, suporte/SLA e pilotos;
+9. promover somente após handoff final de QA e aprovação do coordenador.
 
 ## Regra de promoção
 
-Staging está autorizado quando os recursos forem configurados. Produção somente
-após E2E autenticado, restore, alertas, rollback, revisão legal e aprovação do
-Coordenador com evidências.
-
+Staging pode receber as correções após PR e QA. Produção pública permanece bloqueada até E2E autenticado, restore, alertas, rollback, isolamento de produção, capacidade, revisão legal e aprovação do coordenador possuírem evidências verificáveis.

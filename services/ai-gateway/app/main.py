@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from supabase import Client, create_client
 
-from app.observability import configure_api_logging
+from app.observability import configure_api_logging, configure_security_headers
 
 
 class Settings(BaseSettings):
@@ -26,12 +26,22 @@ class Settings(BaseSettings):
     ollama_light_model: str = "qwen3:4b"
     allowed_origins: str = "http://localhost:3000"
     hourly_job_limit: int = 30
+    environment: str = "development"
+    api_docs_enabled: bool = True
 
 
 settings = Settings()
 admin: Client = create_client(settings.supabase_url, settings.supabase_service_role_key)
-app = FastAPI(title="Ritmo AI Gateway", version="0.2.0")
+docs_enabled = settings.environment.lower() != "production" and settings.api_docs_enabled
+app = FastAPI(
+    title="Ritmo AI Gateway",
+    version="0.2.0",
+    docs_url="/docs" if docs_enabled else None,
+    redoc_url="/redoc" if docs_enabled else None,
+    openapi_url="/openapi.json" if docs_enabled else None,
+)
 configure_api_logging(app, "ai-gateway")
+configure_security_headers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[item.strip() for item in settings.allowed_origins.split(",")],
@@ -251,10 +261,18 @@ async def enqueue(
     if (recent.count or 0) >= settings.hourly_job_limit:
         raise HTTPException(429, "Cota horária de IA atingida. Tente novamente mais tarde.")
     key = idempotency_key or f"{kind}:{user.user_id}:{time.time_ns()}"
+    payload = dict(request.payload)
+    if kind in {"content.generate", "content.revise", "plan.generate", "plan.revise"}:
+        approved = admin.table("creator_memories").select(
+            "id,category,content"
+        ).eq("user_id", user.user_id).in_(
+            "status", ["confirmed", "pinned"]
+        ).order("updated_at", desc=True).limit(12).execute()
+        payload["approved_creator_memories"] = approved.data or []
     record = {
         "user_id": user.user_id,
         "kind": kind,
-        "payload": request.payload,
+        "payload": payload,
         "idempotency_key": key,
         "status": "queued",
     }

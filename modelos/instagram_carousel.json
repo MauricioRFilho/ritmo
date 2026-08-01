@@ -1,0 +1,64 @@
+{
+  "creator_type": "instagram_carousel",
+  "project": {
+    "title": "5 erros que acabam com seu treino de corrida",
+    "number_of_slides": 7,
+    "dimensions": {
+      "width": 1080,
+      "height": 1350
+    }
+  },
+  "design": {
+    "style": "minimal_sports",
+    "background": "dark",
+    "accent_color": "#FF6B00",
+    "font": "bold_sans_serif",
+    "use_photos": true,
+    "visual_consistency": true
+  },
+  "slides": [
+    {
+      "slide": 1,
+      "type": "cover",
+      "headline": "5 ERROS QUE DESTROEM SEU TREINO",
+      "supporting_text": "O número 4 parece inofensivo.",
+      "image": "corredor cansado após o treino"
+    },
+    {
+      "slide": 2,
+      "type": "content",
+      "headline": "1. Correr forte todos os dias",
+      "body": "Treinos leves também constroem resistência e ajudam na recuperação."
+    },
+    {
+      "slide": 3,
+      "type": "content",
+      "headline": "2. Ignorar o fortalecimento",
+      "body": "Força ajuda na eficiência da corrida e na tolerância à carga."
+    },
+    {
+      "slide": 4,
+      "type": "content",
+      "headline": "3. Aumentar o volume rápido demais",
+      "body": "Seu condicionamento pode evoluir mais rápido que músculos e tendões."
+    },
+    {
+      "slide": 5,
+      "type": "content",
+      "headline": "4. Copiar o treino de outra pessoa",
+      "body": "O treino precisa considerar seu histórico, ritmo e disponibilidade."
+    },
+    {
+      "slide": 6,
+      "type": "content",
+      "headline": "5. Dormir e comer mal",
+      "body": "O treino gera estímulo. A recuperação transforma esse estímulo em evolução."
+    },
+    {
+      "slide": 7,
+      "type": "call_to_action",
+      "headline": "QUAL DESSES VOCÊ JÁ COMETEU?",
+      "body": "Comenta o número e salva para revisar depois."
+    }
+  ]
+}

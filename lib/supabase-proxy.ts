@@ -12,7 +12,17 @@ function isProtected(pathname: string) {
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) return NextResponse.next({ request });
+  const pathname = request.nextUrl.pathname;
+
+  if (!url || !key) {
+    if (isProtected(pathname)) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      loginUrl.searchParams.set("return_to", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next({ request });
+  }
 
   let response = NextResponse.next({ request });
   const client = createServerClient(url, key, {
@@ -30,7 +40,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data, error } = await client.auth.getClaims();
   const authenticated = !error && Boolean(data?.claims?.sub);
-  const pathname = request.nextUrl.pathname;
 
   if (isProtected(pathname) && !authenticated) {
     const loginUrl = request.nextUrl.clone();
@@ -48,4 +57,3 @@ export async function updateSession(request: NextRequest) {
 
   return response;
 }
-

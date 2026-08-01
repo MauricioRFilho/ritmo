@@ -6,6 +6,24 @@ import uuid
 
 from fastapi import FastAPI, Request
 
+API_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+}
+
+
+def configure_security_headers(app: FastAPI):
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        response = await call_next(request)
+        for name, value in API_SECURITY_HEADERS.items():
+            response.headers[name] = value
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
 
 def get_logger(name: str) -> logging.Logger:
     logging.basicConfig(
@@ -52,4 +70,3 @@ def configure_api_logging(app: FastAPI, service: str):
             duration_ms=int((time.perf_counter() - started) * 1000),
         )
         return response
-

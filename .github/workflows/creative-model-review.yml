@@ -1,0 +1,26 @@
+name: Creative model review
+
+on:
+  pull_request:
+    paths:
+      - "modelos/**"
+      - "scripts/validate-creative-models.mjs"
+      - "package.json"
+      - ".github/workflows/creative-model-review.yml"
+      - ".github/CODEOWNERS"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run validate:creative-models

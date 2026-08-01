@@ -19,11 +19,7 @@ Supabase, mas somente o gateway publica HTTPS. Ollama não expõe porta pública
 
 ## Staging provisionado
 
-A VPS HostGator em uso possui Docker, Nginx, 3,8 GiB de RAM e não possui GPU.
-Por isso o staging usa `qwen3:0.6b`; o modelo de 8B permanece requisito para uma
-infraestrutura de produção dimensionada. Gateway, workers e Ollama estão ativos,
-mas a URL pública ainda aguarda DNS e TLS. Até lá, o deploy Sites novo não deve
-ser promovido.
+A VPS HostGator de staging possui Docker, Nginx, 3,8 GiB de RAM e não possui GPU. O gateway HTTPS está ativo em `https://ritmo-api.gapet.com.br` via Cloudflare, com CORS para o frontend atual. O ambiente usa modelo reduzido e não comprova capacidade de produção. DNS e TLS estão ativos; produção separada, alertas, restore e sizing continuam pendentes.
 
 ## Ambientes
 
@@ -94,4 +90,3 @@ semestralmente. Registrar data, executor e serviços reiniciados.
 
 Esses números são hipóteses. O teste de carga em staging define a capacidade
 final e as cotas comerciais.
-

@@ -14,7 +14,8 @@
     "test:python": "node scripts/python-check.mjs",
     "check": "npm run lint && npm run test:python && npm test",
     "test:db": "supabase test db",
-    "check:release": "npm run check && npm run test:db"
+    "check:release": "npm run check && npm run test:db",
+    "validate:creative-models": "node scripts/validate-creative-models.mjs"
   },
   "dependencies": {
     "@rolldown/pluginutils": "1.0.0",

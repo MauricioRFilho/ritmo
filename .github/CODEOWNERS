@@ -1,0 +1,7 @@
+# Requer branch protection com revisão de Code Owners para enforcement.
+/modelos/ @MauricioRFilho
+/scripts/validate-creative-models.mjs @MauricioRFilho
+/.github/workflows/creative-model-review.yml @MauricioRFilho
+/.github/CODEOWNERS @MauricioRFilho
+/.github/PULL_REQUEST_TEMPLATE.md @MauricioRFilho
+/package.json @MauricioRFilho
